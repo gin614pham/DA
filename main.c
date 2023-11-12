@@ -37,6 +37,8 @@ void printFileInfo(const char *filePath) {
     printf("Group: %s\n", gr ? gr->gr_name : "Unknown");
 
     printf("Size: %ld bytes\n", (long)fileInfo.st_size);
+    printf("Blocks: %ld\n", (long)fileInfo.st_blocks);
+    printf("Block Size: %ld bytes\n", (long)fileInfo.st_blksize);
 
     // Format and print the last access time
     char buffer[80];
@@ -64,6 +66,81 @@ void createFile(const char *fileName) {
     } else {
         perror("fopen");
     }
+}
+
+void moveFileToTrash(const char *fileName) {
+
+	// Create file path
+	char actualpath [PATH_MAX + 1];
+	char *file_path = realpath(fileName, actualpath);
+
+	// Create home path
+	char *home_path = getenv("HOME");
+
+	
+	// Create path to trash
+	char trash_path[PATH_MAX +1];
+	strcpy(trash_path, home_path);
+	strcat(trash_path, "/.local/share/Trash/files/");
+	strcat(trash_path, fileName);
+	
+	// Create path to trash info
+	char trash_info_path[PATH_MAX +1];
+	strcpy(trash_info_path, home_path);
+	strcat(trash_info_path, "/.local/share/Trash/info/");
+	strcat(trash_info_path, fileName);
+	strcat(trash_info_path, ".trashinfo");
+	
+	// Open file
+	FILE *file = fopen(fileName, "r");
+	if (file == NULL) {
+		perror("fopen");
+		return;
+	}
+
+	// Open trash file
+	FILE *trash_file = fopen(trash_path, "w");
+		if (trash_file == NULL) {
+		perror("fopen trash");
+		return;
+	}
+	
+	// Open trash info file
+	FILE *trash_info_file = fopen(trash_info_path, "w");
+		if (trash_info_file == NULL) {
+		perror("fopen trash info");
+		return;
+	}
+
+	// Read data from file
+	char trash[1024];
+	while (fgets(trash, sizeof(trash), file) != NULL) {
+		// Write to trash file
+		fputs(trash, trash_file);
+	}
+	
+	// Get current time
+	time_t time_value = time(NULL);
+	struct tm *now = gmtime(&time_value);
+
+	// Create time string
+	char delete_at[32];
+	strftime(delete_at, sizeof(delete_at), "%Y-%m-%dT%H:%M:%S", now);
+
+	// Write info to infofile	
+	char trash_info[1024];
+	sprintf(trash_info, "[Trash Info]\nPath=%s\nDeletionDate=%s", file_path, delete_at);
+	fputs(trash_info,trash_info_file);
+
+
+	// Close old file
+	fclose(file);
+	remove(fileName);
+
+	// Close new_file
+	fclose(trash_file);
+
+	printf("Moved file %s to trash.\n", fileName);
 }
 
 void deleteFile(const char *fileName) {
@@ -111,11 +188,48 @@ void listFiles(const char *directoryPath) {
 void changePermission(const char *fileName, mode_t permission) {
     // change permission
     if (chmod(fileName, permission) == 0) {
-        printf("Permission changed successfully.\n");
+        printf("Permission of '%s' changed to %o successfully.\n" , fileName , permission);
     } else {
         perror("chmod");
     }
 }
+
+
+void changeOwnerAndGroup(const char *file_path, const char *user_name, const char *group_name) {
+    // check run as root
+    if (getuid() != 0) {
+        fprintf(stderr, "To change owner and group, please run program as root\n");
+        exit(EXIT_FAILURE);
+    }
+    uid_t uid = -1; 
+    gid_t gid = -1; 
+
+    if (user_name != NULL) {
+        struct passwd *pwd = getpwnam(user_name);
+        if (pwd == NULL) {
+            perror("Failed to get uid");
+            exit(EXIT_FAILURE);
+        }
+        uid = pwd->pw_uid;
+    }
+
+    if (group_name != NULL) {
+        struct group *grp = getgrnam(group_name);
+        if (grp == NULL) {
+            perror("Failed to get gid");
+            exit(EXIT_FAILURE);
+        }
+        gid = grp->gr_gid;
+    }
+
+    if (chown(file_path, uid, gid) == -1) {
+        perror("chown failed");
+        exit(EXIT_FAILURE);
+    } else {
+        printf("Owner and group of '%s' changed to '%s:%s' successfully.\n", file_path, user_name, group_name);
+    }
+}
+
 
 void mergeFile(const char *fileName, const char *fileName2, const char *fileName3) {
     int fd1[2];
@@ -232,6 +346,21 @@ void duplicateFile(const char *fileName) {
 
     printf("File '%s' duplicated successfully.\n", dupliFile);
 
+
+void printHelp() {
+	printf("Usage: ./myFileManager -c <file_name> to create a file\n");
+	printf("Usage: ./myFileManager -d <file_name> to delete a file\n");
+	printf("Usage: ./myFileManager -r <old_file> <new_file> to rename a file\n");
+	printf("Usage: ./myFileManager -m <source_file> <destination_file> to move a file\n");
+	printf("Usage: ./myFileManager -l <directory_path> to list files in a directory\n");
+	printf("Usage: ./myFileManager -i <file_name> to show information about a file\n");
+	printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
+	printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
+	printf("Usage: ./myFileManager -p <file_name> <permission> to change permission\n");
+	printf("Usage: ./myFileManager -o <file_name> <user_name> group_name> to change owner and group\n");
+	printf("Usage: ./myFileManager -o -u <file_name> <user_name> to change owner\n");
+	printf("Usage: ./myFileManager -o -g <file_name> <group_name> to change group\n");
+
 }
 
 int main(int argc, char *argv[]) {
@@ -239,6 +368,7 @@ int main(int argc, char *argv[]) {
         // check if the first argument is "-h" or "-help"
         if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-help") == 0) {
             // print help message
+
             printf("Usage: ./myFileManager -c file_name to create a file\n");
             printf("Usage: ./myFileManager -d file_name to delete a file\n");
             printf("Usage: ./myFileManager -r old_file_name new_file_name to rename a file\n");
@@ -249,33 +379,48 @@ int main(int argc, char *argv[]) {
             printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
             printf("Usage: ./myFileManager -p file_name permission to change permission\n");
             printf("Usage: ./myFileManager -b file_name to duplicate permission\n");
+
+            printHelp();
+
             return 0;
         }
         // switch on the first argument
         switch (argv[1][1]) {
             case 'c':
-                // check if there are enough arguments
-                if (argc != 3) {
-                    printf("Invalid argument\n");
-                    printf("Usage: ./myFileManager -c file_name to create a file\n");
-                }
-                createFile(argv[2]);
-                break;
+    			// check if there are enough arguments
+    			if (argc != 3) {
+    			    printf("Invalid argument\n");
+    			    printf("Usage: ./myFileManager -c <file_name> to create a file\n");
+    			    break;
+    			}
+    			createFile(argv[2]);
+    			break;
+            case 't':
+		    	// check if there are enough arguments
+		        if (argc != 3) {
+		            printf("Invalid argument\n");
+		            printf("Usage: ./myFileManager -t <file_name> to move file to trash\n");
+		            break;
+		        }
+		        moveFileToTrash(argv[2]);
+		    	break;
             case 'd':
-                // check if there are enough arguments
-                if (argc != 3) {
-                    printf("Invalid argument\n");
-                    printf("Usage: ./myFileManager -d file_name to delete a file\n");
-                }
-                deleteFile(argv[2]);    
-                break;
+		        // check if there are enough arguments
+		        if (argc != 3) {
+				    printf("Invalid argument\n");
+				    printf("Usage: ./myFileManager -d <file_name> to delete a file\n");
+				    break;
+		        }
+		        deleteFile(argv[2]);    
+		        break;
             case 'r':
-                // check if there are enough arguments
-                if (argc != 4) {
-                    printf("Invalid argument\n");
-                    printf("Usage: ./myFileManager -r old_file_name new_file_name to rename a file\n");
-                }
-                renameFile(argv[2], argv[3]);
+                	// check if there are enough arguments
+		        if (argc != 4) {
+				    printf("Invalid argument\n");
+				    printf("Usage: ./myFileManager -r <old_file> <new_file> to rename a file\n");
+				    break;
+		        }
+		        renameFile(argv[2], argv[3]);
                 break;
             case 'm':
                 // check if there are enough arguments
@@ -286,9 +431,10 @@ int main(int argc, char *argv[]) {
                 moveFile(argv[2], argv[3]);
                 break;
             case 'l':
-                listFiles(argc > 2 ? argv[2] : ".");
-                break;
+		        listFiles(argc > 2 ? argv[2] : ".");
+		        break;
             case 'i':
+
                 // check if there are enough arguments
                 if (argc != 3) {
                     printf("Invalid argument\n");
@@ -303,15 +449,34 @@ int main(int argc, char *argv[]) {
                 }
                 mergeFile(argv[2], argv[3], argv[4]);
                 break;
+
+		        // check if there are enough arguments
+		        if (argc != 3) {
+		            	printf("Invalid argument\n");
+		            	printf("Usage: ./myFileManager -i <file_name> to show information about a file\n");
+		            	break;
+		        }
+		        printFileInfo(argv[2]);
+		        break;
+	    	case 'g':
+		        if (argc != 4) {
+		            	printf("Invalid argument\n");
+	           	 	printf("Usage: ./myFileManager -mg <file_name> <file_name2> to merge two files\n");
+		            	break;
+		        }
+		        mergeFile(argv[2], argv[3]);
+		        break;
+
             case 'p':
                 if (argc != 4) {
                     printf("Invalid argument\n");
-                    printf("Usage: ./myFileManager -p file_name permission to change permission\n");
+                    printf("Usage: ./myFileManager -p <file_name> <permission> to change permission\n");
                     break;
                 }
                 mode_t permission = strtol(argv[3], NULL, 8);
                 changePermission(argv[2], permission);
                 break;
+
             case 'b':
                 if(argc != 3){
                     printf("Invalid argument\n");
@@ -332,7 +497,27 @@ int main(int argc, char *argv[]) {
                 printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
                 printf("Usage: ./myFileManager -p file_name permission to change permission\n");
                 printf("Usage: ./myFileManager -b file_name to duplicate permission\n");
+
+            case 'o':
+                if (argc != 5) {
+                    printf("Invalid argument\n");
+                    printf("Usage: ./myFileManager -o <file_name> <user_name> <group_name> to change owner and group\n");
+                    printf("Usage: ./myFileManager -o -u <file_name> <user_name> to change owner\n");
+                    printf("Usage: ./myFileManager -o -g <file_name> <group_name> to change group\n");
+                    break;
+                }
+                if (strcmp(argv[2], "-u") == 0) {
+                    changeOwnerAndGroup(argv[3], argv[4], NULL);
+                } else if (strcmp(argv[2], "-g") == 0) {
+                    changeOwnerAndGroup(argv[3], NULL, argv[4]);
+                } else {
+                    changeOwnerAndGroup(argv[2], argv[3], argv[4]);
+                }
+
                 break;
+
+            default:
+                printHelp();
         }
     } else {
         // print help
