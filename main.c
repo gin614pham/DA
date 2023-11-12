@@ -430,11 +430,11 @@ int main(int argc, char *argv[]) {
 		        }
 		        printFileInfo(argv[2]);
 		        break;
-	    	case 'g':
+			case 'g':
 		        if (argc != 4) {
-		            	printf("Invalid argument\n");
+					printf("Invalid argument\n");
 	           	 	printf("Usage: ./myFileManager -mg <file_name> <file_name2> to merge two files\n");
-		            	break;
+					break;
 		        }
 		        mergeFile(argv[2], argv[3]);
 		        break;
