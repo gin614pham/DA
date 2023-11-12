@@ -197,7 +197,6 @@ void changePermission(const char *fileName, mode_t permission) {
     }
 }
 
-
 void changeOwnerAndGroup(const char *file_path, const char *user_name, const char *group_name) {
     // check run as root
     if (getuid() != 0) {
@@ -242,7 +241,7 @@ void mergeFile(const char *fileName, const char *fileName2, const char *fileName
     FILE *fp2 = fopen(fileName2, "r");
     createFile(fileName3);
     FILE *fp3 = fopen(fileName3, "w");
-    if (fp3 == NULL) {
+if (fp3 == NULL) {
         perror("createFile");
         fclose(fp1);
         fclose(fp2);
@@ -358,12 +357,11 @@ void printHelp() {
 	printf("Usage: ./myFileManager -l <directory_path> to list files in a directory\n");
 	printf("Usage: ./myFileManager -i <file_name> to show information about a file\n");
 	printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
-	printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
+	printf("Usage: ./myFileManager -g <file_name> <file_name2> to merge two files\n");
 	printf("Usage: ./myFileManager -p <file_name> <permission> to change permission\n");
 	printf("Usage: ./myFileManager -o <file_name> <user_name> group_name> to change owner and group\n");
 	printf("Usage: ./myFileManager -o -u <file_name> <user_name> to change owner\n");
 	printf("Usage: ./myFileManager -o -g <file_name> <group_name> to change group\n");
-
 }
 
 int main(int argc, char *argv[]) {
@@ -371,20 +369,7 @@ int main(int argc, char *argv[]) {
         // check if the first argument is "-h" or "-help"
         if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-help") == 0) {
             // print help message
-
-            printf("Usage: ./myFileManager -c file_name to create a file\n");
-            printf("Usage: ./myFileManager -d file_name to delete a file\n");
-            printf("Usage: ./myFileManager -r old_file_name new_file_name to rename a file\n");
-            printf("Usage: ./myFileManager -m source_file destination_file to move a file\n");
-            printf("Usage: ./myFileManager -l directory_path to list files in a directory\n");
-            printf("Usage: ./myFileManager -i file_name to show information about a file\n");
-            printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
-            printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
-            printf("Usage: ./myFileManager -p file_name permission to change permission\n");
-            printf("Usage: ./myFileManager -b file_name to duplicate permission\n");
-
             printHelp();
-
             return 0;
         }
         // switch on the first argument
@@ -437,22 +422,22 @@ int main(int argc, char *argv[]) {
 		        listFiles(argc > 2 ? argv[2] : ".");
 		        break;
             case 'i':
-
-                // check if there are enough arguments
-                if (argc != 3) {
-                    printf("Invalid argument\n");
-                    printf("Usage: ./myFileManager -i file_name to show information about a file\n");
-                }
-                printFileInfo(argv[2]);
-                break;
-            case 'g':
-                if (argc != 5) {
-                    printf("Invalid argument\n");
-                    printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
-                }
-                mergeFile(argv[2], argv[3], argv[4]);
-                break;
-
+		        // check if there are enough arguments
+		        if (argc != 3) {
+		            	printf("Invalid argument\n");
+		            	printf("Usage: ./myFileManager -i <file_name> to show information about a file\n");
+		            	break;
+		        }
+		        printFileInfo(argv[2]);
+		        break;
+	    	case 'g':
+		        if (argc != 4) {
+		            	printf("Invalid argument\n");
+	           	 	printf("Usage: ./myFileManager -mg <file_name> <file_name2> to merge two files\n");
+		            	break;
+		        }
+		        mergeFile(argv[2], argv[3]);
+		        break;
             case 'p':
                 if (argc != 4) {
                     printf("Invalid argument\n");
@@ -462,28 +447,6 @@ int main(int argc, char *argv[]) {
                 mode_t permission = strtol(argv[3], NULL, 8);
                 changePermission(argv[2], permission);
                 break;
-
-            case 'b':
-                if(argc != 3){
-                    printf("Invalid argument\n");
-                    printf("Usage: ./myFileManager -b file_name to duplicate permission\n");
-                    break;
-                }
-                duplicateFile(argv[2]);
-                break;
-            default:
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -c file_name to create a file\n");
-                printf("Usage: ./myFileManager -d file_name to delete a file\n");
-                printf("Usage: ./myFileManager -r old_file_name new_file_name to rename a file\n");
-                printf("Usage: ./myFileManager -m source_file destination_file to move a file\n");
-                printf("Usage: ./myFileManager -l directory_path to list files in a directory\n");
-                printf("Usage: ./myFileManager -i file_name to show information about a file\n");
-                printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
-                printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
-                printf("Usage: ./myFileManager -p file_name permission to change permission\n");
-                printf("Usage: ./myFileManager -b file_name to duplicate permission\n");
-
             case 'o':
                 if (argc != 5) {
                     printf("Invalid argument\n");
@@ -499,9 +462,10 @@ int main(int argc, char *argv[]) {
                 } else {
                     changeOwnerAndGroup(argv[2], argv[3], argv[4]);
                 }
-
                 break;
 
+            default:
+                printHelp();
         }
     } else {
         // print help
@@ -510,4 +474,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
