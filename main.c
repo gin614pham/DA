@@ -3,12 +3,14 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
 #include <dirent.h>
+#include <sys/wait.h>
 
 // Function to print file information
 void printFileInfo(const char *filePath) {
@@ -42,6 +44,15 @@ void printFileInfo(const char *filePath) {
     printf("%s\n", buffer);
 
     printf("\n");
+}
+
+void createFolder(const char *folderName) {
+    // create a folder
+    if (mkdir(folderName, 0777) == 0) {
+        printf("Folder '%s' created successfully.\n", folderName);
+    } else {
+        perror("mkdir");
+    }
 }
 
 void createFile(const char *fileName) {
@@ -97,6 +108,87 @@ void listFiles(const char *directoryPath) {
     }
 }
 
+void mergeFile(const char *fileName, const char *fileName2) {
+    int fd1[2];
+    int fd2[2];
+
+    FILE *fp1 = fopen(fileName, "r");
+    FILE *fp2 = fopen(fileName2, "r");
+    createFile("file3.txt");
+    FILE *fp3 = fopen("file3.txt", "w");
+
+    if (fp1 == NULL || fp2 == NULL) {
+        perror("fopen");
+        return;
+    }
+
+    if (pipe(fd1) == -1) {
+        perror("pipe");
+        return;
+    }
+
+    if (pipe(fd2) == -1) {
+        perror("pipe");
+        return;
+    }
+
+    pid_t p;
+    p = fork();
+
+    if (p < 0) {
+        perror("fork");
+        return;
+    }
+
+    //parent process
+    else if (p > 0) {
+        char concat_str[100];
+ 
+        close(fd1[0]);
+
+        while (fgets(concat_str, 100, fp1) != NULL) {
+            write(fd1[1], concat_str, strlen(concat_str) + 1);
+        }
+        printf("P1 %s\n", concat_str);
+        close(fd1[1]);
+
+        wait(NULL);
+
+        close(fd2[1]);
+
+        read(fd2[0], concat_str, 100);
+        printf("P2 %s\n", concat_str);
+        fprintf(fp3, "%s", concat_str);
+        close(fd2[0]);
+    }
+    //child process
+    else {
+        close(fd1[1]);
+        char concat_str[100];
+        char concat_str2[100];
+        read(fd1[0], concat_str, 100);
+        printf("C1 %s\n", concat_str);
+
+        while (fgets(concat_str2, 100, fp2) != NULL) {
+            int k = strlen(concat_str);
+            for (int i = 0; i < strlen(concat_str2); i++) {
+                concat_str[k++] = concat_str2[i];
+            }
+            concat_str[k] = '\0';
+        }
+        printf("C2 %s\n", concat_str);
+
+        close(fd1[0]);
+        close(fd2[0]);
+
+        write(fd2[1], concat_str, strlen(concat_str) + 1);
+        printf("C4 %s\n", concat_str);
+        close(fd2[1]);
+
+        exit(0);      
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc >= 2) {
         // check if the first argument is "-h" or "-help"
@@ -109,6 +201,7 @@ int main(int argc, char *argv[]) {
             printf("Usage: ./myFileManager -l directory_path to list files in a directory\n");
             printf("Usage: ./myFileManager -i file_name to show information about a file\n");
             printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
+            printf("Usage: ./myFileManager -g file_name file_name2 to merge two files\n");
             return 0;
         }
         // switch on the first argument
@@ -156,6 +249,13 @@ int main(int argc, char *argv[]) {
                 }
                 printFileInfo(argv[2]);
                 break;
+            case 'g':
+                if (argc != 4) {
+                    printf("Invalid argument\n");
+                    printf("Usage: ./myFileManager -mg file_name file_name2 to merge two files\n");
+                }
+                mergeFile(argv[2], argv[3]);
+                break;
             default:
                 printf("Invalid argument\n");
                 printf("Usage: ./myFileManager -c file_name to create a file\n");
@@ -165,6 +265,7 @@ int main(int argc, char *argv[]) {
                 printf("Usage: ./myFileManager -l directory_path to list files in a directory\n");
                 printf("Usage: ./myFileManager -i file_name to show information about a file\n");
                 printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
+                printf("Usage: ./myFileManager -g file_name file_name2 to merge two files\n");
                 break;
         }
     } else {
