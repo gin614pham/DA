@@ -108,6 +108,15 @@ void listFiles(const char *directoryPath) {
     }
 }
 
+void changePermission(const char *fileName, mode_t permission) {
+    // change permission
+    if (chmod(fileName, permission) == 0) {
+        printf("Permission changed successfully.\n");
+    } else {
+        perror("chmod");
+    }
+}
+
 void mergeFile(const char *fileName, const char *fileName2) {
     int fd1[2];
     int fd2[2];
@@ -202,6 +211,7 @@ int main(int argc, char *argv[]) {
             printf("Usage: ./myFileManager -i file_name to show information about a file\n");
             printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
             printf("Usage: ./myFileManager -g file_name file_name2 to merge two files\n");
+            printf("Usage: ./myFileManager -p file_name permission to change permission\n");
             return 0;
         }
         // switch on the first argument
@@ -256,6 +266,15 @@ int main(int argc, char *argv[]) {
                 }
                 mergeFile(argv[2], argv[3]);
                 break;
+            case 'p':
+                if (argc != 4) {
+                    printf("Invalid argument\n");
+                    printf("Usage: ./myFileManager -p file_name permission to change permission\n");
+                    break;
+                }
+                mode_t permission = strtol(argv[3], NULL, 8);
+                changePermission(argv[2], permission);
+                break;
             default:
                 printf("Invalid argument\n");
                 printf("Usage: ./myFileManager -c file_name to create a file\n");
@@ -266,6 +285,7 @@ int main(int argc, char *argv[]) {
                 printf("Usage: ./myFileManager -i file_name to show information about a file\n");
                 printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
                 printf("Usage: ./myFileManager -g file_name file_name2 to merge two files\n");
+                printf("Usage: ./myFileManager -p file_name permission to change permission\n");
                 break;
         }
     } else {
