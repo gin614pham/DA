@@ -133,12 +133,15 @@ void moveFileToTrash(const char *fileName) {
 	fputs(trash_info,trash_info_file);
 
 
-	// Close old file
+	// Close file
 	fclose(file);
 	remove(fileName);
 
 	// Close new_file
 	fclose(trash_file);
+
+	// Close new_file
+	fclose(trash_info_file);
 
 	printf("Moved file %s to trash.\n", fileName);
 }
