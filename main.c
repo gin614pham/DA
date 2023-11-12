@@ -124,21 +124,24 @@ void moveFileToTrash(const char *fileName) {
 	struct tm *now = gmtime(&time_value);
 
 	// Create time string
-	char delete_at[32];
+	char delete_at[100];
 	strftime(delete_at, sizeof(delete_at), "%Y-%m-%dT%H:%M:%S", now);
 
-	// Write info to infofile	
+	// Write info to infofile
 	char trash_info[1024];
 	sprintf(trash_info, "[Trash Info]\nPath=%s\nDeletionDate=%s", file_path, delete_at);
 	fputs(trash_info,trash_info_file);
 
 
-	// Close old file
+	// Close file
 	fclose(file);
 	remove(fileName);
 
-	// Close new_file
+	// Close trash_file
 	fclose(trash_file);
+
+	// Close trassh_info_file
+	fclose(trash_info_file);
 
 	printf("Moved file %s to trash.\n", fileName);
 }
