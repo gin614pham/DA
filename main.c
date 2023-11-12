@@ -348,7 +348,7 @@ void duplicateFile(const char *fileName) {
     fclose(dupliFp);
 
     printf("File '%s' duplicated successfully.\n", dupliFile);
-
+}
 
 void printHelp() {
 	printf("Usage: ./myFileManager -c <file_name> to create a file\n");
@@ -453,23 +453,6 @@ int main(int argc, char *argv[]) {
                 mergeFile(argv[2], argv[3], argv[4]);
                 break;
 
-		        // check if there are enough arguments
-		        if (argc != 3) {
-		            	printf("Invalid argument\n");
-		            	printf("Usage: ./myFileManager -i <file_name> to show information about a file\n");
-		            	break;
-		        }
-		        printFileInfo(argv[2]);
-		        break;
-	    	case 'g':
-		        if (argc != 4) {
-		            	printf("Invalid argument\n");
-	           	 	printf("Usage: ./myFileManager -mg <file_name> <file_name2> to merge two files\n");
-		            	break;
-		        }
-		        mergeFile(argv[2], argv[3]);
-		        break;
-
             case 'p':
                 if (argc != 4) {
                     printf("Invalid argument\n");
@@ -519,8 +502,6 @@ int main(int argc, char *argv[]) {
 
                 break;
 
-            default:
-                printHelp();
         }
     } else {
         // print help
@@ -529,3 +510,4 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
