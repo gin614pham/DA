@@ -37,6 +37,8 @@ void printFileInfo(const char *filePath) {
     printf("Group: %s\n", gr ? gr->gr_name : "Unknown");
 
     printf("Size: %ld bytes\n", (long)fileInfo.st_size);
+    printf("Blocks: %ld\n", (long)fileInfo.st_blocks);
+    printf("Block Size: %ld bytes\n", (long)fileInfo.st_blksize);
 
     // Format and print the last access time
     char buffer[80];
@@ -111,11 +113,47 @@ void listFiles(const char *directoryPath) {
 void changePermission(const char *fileName, mode_t permission) {
     // change permission
     if (chmod(fileName, permission) == 0) {
-        printf("Permission changed successfully.\n");
+        printf("Permission of '%s' changed to %o successfully.\n" , fileName , permission);
     } else {
         perror("chmod");
     }
 }
+
+void changeOwnerAndGroup(const char *file_path, const char *user_name, const char *group_name) {
+    // check run as root
+    if (getuid() != 0) {
+        fprintf(stderr, "To change owner and group, please run program as root\n");
+        exit(EXIT_FAILURE);
+    }
+    uid_t uid = -1; 
+    gid_t gid = -1; 
+
+    if (user_name != NULL) {
+        struct passwd *pwd = getpwnam(user_name);
+        if (pwd == NULL) {
+            perror("Failed to get uid");
+            exit(EXIT_FAILURE);
+        }
+        uid = pwd->pw_uid;
+    }
+
+    if (group_name != NULL) {
+        struct group *grp = getgrnam(group_name);
+        if (grp == NULL) {
+            perror("Failed to get gid");
+            exit(EXIT_FAILURE);
+        }
+        gid = grp->gr_gid;
+    }
+
+    if (chown(file_path, uid, gid) == -1) {
+        perror("chown failed");
+        exit(EXIT_FAILURE);
+    } else {
+        printf("Owner and group of '%s' changed to '%s:%s' successfully.\n", file_path, user_name, group_name);
+    }
+}
+
 
 void mergeFile(const char *fileName, const char *fileName2) {
     int fd1[2];
@@ -212,6 +250,9 @@ int main(int argc, char *argv[]) {
             printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
             printf("Usage: ./myFileManager -g file_name file_name2 to merge two files\n");
             printf("Usage: ./myFileManager -p file_name permission to change permission\n");
+            printf("Usage: ./myFileManager -o file_name user_name group_name to change owner and group\n");
+            printf("Usage: ./myFileManager -o -u file_name user_name to change owner\n");
+            printf("Usage: ./myFileManager -o -g file_name group_name to change group\n");
             return 0;
         }
         // switch on the first argument
@@ -275,6 +316,23 @@ int main(int argc, char *argv[]) {
                 mode_t permission = strtol(argv[3], NULL, 8);
                 changePermission(argv[2], permission);
                 break;
+            case 'o':
+                if (argc != 5) {
+                    printf("Invalid argument\n");
+                    printf("Usage: ./myFileManager -o file_name user_name group_name to change owner and group\n");
+                    printf("Usage: ./myFileManager -o -u file_name user_name to change owner\n");
+                    printf("Usage: ./myFileManager -o -g file_name group_name to change group\n");
+                    break;
+                }
+                if (strcmp(argv[2], "-u") == 0) {
+                    changeOwnerAndGroup(argv[3], argv[4], NULL);
+                } else if (strcmp(argv[2], "-g") == 0) {
+                    changeOwnerAndGroup(argv[3], NULL, argv[4]);
+                } else {
+                    changeOwnerAndGroup(argv[2], argv[3], argv[4]);
+                }
+                break;
+
             default:
                 printf("Invalid argument\n");
                 printf("Usage: ./myFileManager -c file_name to create a file\n");
@@ -286,6 +344,9 @@ int main(int argc, char *argv[]) {
                 printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
                 printf("Usage: ./myFileManager -g file_name file_name2 to merge two files\n");
                 printf("Usage: ./myFileManager -p file_name permission to change permission\n");
+                printf("Usage: ./myFileManager -o file_name user_name group_name to change owner and group\n");
+                printf("Usage: ./myFileManager -o -u file_name user_name to change owner\n");
+                printf("Usage: ./myFileManager -o -g file_name group_name to change group\n");
                 break;
         }
     } else {
