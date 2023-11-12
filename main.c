@@ -320,10 +320,10 @@ void printHelp() {
 	printf("Usage: ./myFileManager -i <file_name> to show information about a file\n");
 	printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
 	printf("Usage: ./myFileManager -g <file_name> <file_name2> to merge two files\n");
-    printf("Usage: ./myFileManager -p <file_name> <permission> to change permission\n");
-    printf("Usage: ./myFileManager -o <file_name> <user_name> group_name> to change owner and group\n");
-    printf("Usage: ./myFileManager -o -u <file_name> <user_name> to change owner\n");
-    printf("Usage: ./myFileManager -o -g <file_name> <group_name> to change group\n");
+	printf("Usage: ./myFileManager -p <file_name> <permission> to change permission\n");
+	printf("Usage: ./myFileManager -o <file_name> <user_name> group_name> to change owner and group\n");
+	printf("Usage: ./myFileManager -o -u <file_name> <user_name> to change owner\n");
+	printf("Usage: ./myFileManager -o -g <file_name> <group_name> to change group\n");
 }
 
 int main(int argc, char *argv[]) {
