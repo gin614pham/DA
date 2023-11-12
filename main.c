@@ -117,14 +117,20 @@ void changePermission(const char *fileName, mode_t permission) {
     }
 }
 
-void mergeFile(const char *fileName, const char *fileName2) {
+void mergeFile(const char *fileName, const char *fileName2, const char *fileName3) {
     int fd1[2];
     int fd2[2];
 
     FILE *fp1 = fopen(fileName, "r");
     FILE *fp2 = fopen(fileName2, "r");
-    createFile("file3.txt");
-    FILE *fp3 = fopen("file3.txt", "w");
+    createFile(fileName3);
+    FILE *fp3 = fopen(fileName3, "w");
+    if (fp3 == NULL) {
+        perror("createFile");
+        fclose(fp1);
+        fclose(fp2);
+        return;
+    }
 
     if (fp1 == NULL || fp2 == NULL) {
         perror("fopen");
@@ -198,6 +204,36 @@ void mergeFile(const char *fileName, const char *fileName2) {
     }
 }
 
+void duplicateFile(const char *fileName) {
+    FILE *fp = fopen(fileName, "r");
+    if (fp == NULL) {
+        perror("fopen");
+        return;
+    }
+
+    char dupliFile[50];
+    strcpy(dupliFile, "copy_");
+    strcat(dupliFile, fileName);
+
+    createFile(dupliFile);
+    FILE *dupliFp = fopen(dupliFile, "w");
+    if (dupliFp == NULL) {
+        perror("createFile");
+        fclose(fp);
+        return;
+    }
+    int character;
+    while ((character = fgetc(fp)) != EOF) {
+        fputc(character, dupliFp);
+    }
+
+    fclose(fp);
+    fclose(dupliFp);
+
+    printf("File '%s' duplicated successfully.\n", dupliFile);
+
+}
+
 int main(int argc, char *argv[]) {
     if (argc >= 2) {
         // check if the first argument is "-h" or "-help"
@@ -210,8 +246,9 @@ int main(int argc, char *argv[]) {
             printf("Usage: ./myFileManager -l directory_path to list files in a directory\n");
             printf("Usage: ./myFileManager -i file_name to show information about a file\n");
             printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
-            printf("Usage: ./myFileManager -g file_name file_name2 to merge two files\n");
+            printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
             printf("Usage: ./myFileManager -p file_name permission to change permission\n");
+            printf("Usage: ./myFileManager -b file_name to duplicate permission\n");
             return 0;
         }
         // switch on the first argument
@@ -260,11 +297,11 @@ int main(int argc, char *argv[]) {
                 printFileInfo(argv[2]);
                 break;
             case 'g':
-                if (argc != 4) {
+                if (argc != 5) {
                     printf("Invalid argument\n");
-                    printf("Usage: ./myFileManager -mg file_name file_name2 to merge two files\n");
+                    printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
                 }
-                mergeFile(argv[2], argv[3]);
+                mergeFile(argv[2], argv[3], argv[4]);
                 break;
             case 'p':
                 if (argc != 4) {
@@ -275,6 +312,14 @@ int main(int argc, char *argv[]) {
                 mode_t permission = strtol(argv[3], NULL, 8);
                 changePermission(argv[2], permission);
                 break;
+            case 'b':
+                if(argc != 3){
+                    printf("Invalid argument\n");
+                    printf("Usage: ./myFileManager -b file_name to duplicate permission\n");
+                    break;
+                }
+                duplicateFile(argv[2]);
+                break;
             default:
                 printf("Invalid argument\n");
                 printf("Usage: ./myFileManager -c file_name to create a file\n");
@@ -284,8 +329,9 @@ int main(int argc, char *argv[]) {
                 printf("Usage: ./myFileManager -l directory_path to list files in a directory\n");
                 printf("Usage: ./myFileManager -i file_name to show information about a file\n");
                 printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
-                printf("Usage: ./myFileManager -g file_name file_name2 to merge two files\n");
+                printf("Usage: ./myFileManager -g file_name file_name2 merge_file_name to merge two files\n");
                 printf("Usage: ./myFileManager -p file_name permission to change permission\n");
+                printf("Usage: ./myFileManager -b file_name to duplicate permission\n");
                 break;
         }
     } else {
