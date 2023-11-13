@@ -69,8 +69,7 @@ void createFile(const char *fileName) {
 }
 
 void moveFileToTrash(const char *fileName) {
-
-	// Create file path
+		// Create file path
 	char actualpath [PATH_MAX + 1];
 	char *file_path = realpath(fileName, actualpath);
 	
