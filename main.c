@@ -73,10 +73,10 @@ void moveFileToTrash(const char *fileName) {
 	// Create file path
 	char actualpath [PATH_MAX + 1];
 	char *file_path = realpath(fileName, actualpath);
-
+	
 	// Create home path
 	char *home_path = getenv("HOME");
-
+	
 	
 	// Create path to trash
 	char trash_path[PATH_MAX +1];
@@ -97,7 +97,7 @@ void moveFileToTrash(const char *fileName) {
 		perror("fopen");
 		return;
 	}
-
+	
 	// Open trash file
 	FILE *trash_file = fopen(trash_path, "w");
 		if (trash_file == NULL) {
@@ -111,7 +111,7 @@ void moveFileToTrash(const char *fileName) {
 		perror("fopen trash info");
 		return;
 	}
-
+	
 	// Read data from file
 	char trash[1024];
 	while (fgets(trash, sizeof(trash), file) != NULL) {
@@ -122,27 +122,27 @@ void moveFileToTrash(const char *fileName) {
 	// Get current time
 	time_t time_value = time(NULL);
 	struct tm *now = gmtime(&time_value);
-
+	
 	// Create time string
 	char delete_at[100];
 	strftime(delete_at, sizeof(delete_at), "%Y-%m-%dT%H:%M:%S", now);
-
+	
 	// Write info to infofile
 	char trash_info[1024];
 	sprintf(trash_info, "[Trash Info]\nPath=%s\nDeletionDate=%s", file_path, delete_at);
 	fputs(trash_info,trash_info_file);
-
-
+	
+	
 	// Close file
 	fclose(file);
 	remove(fileName);
-
+	
 	// Close trash_file
 	fclose(trash_file);
-
+	
 	// Close trassh_info_file
 	fclose(trash_info_file);
-
+	
 	printf("Moved file %s to trash.\n", fileName);
 }
 
