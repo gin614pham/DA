@@ -136,7 +136,7 @@ void moveFileToTrash(const char *fileName)
     struct tm *now = gmtime(&time_value);
 
     // Create time string
-    char delete_at[100];
+    char delete_at[1024];
     strftime(delete_at, sizeof(delete_at), "%Y-%m-%dT%H:%M:%S", now);
 
     // Write info to infofile
