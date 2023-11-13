@@ -233,20 +233,14 @@ void changeOwnerAndGroup(const char *file_path, const char *user_name, const cha
 }
 
 
-void mergeFile(const char *fileName, const char *fileName2, const char *fileName3) {
+void mergeFile(const char *fileName, const char *fileName2) {
     int fd1[2];
     int fd2[2];
 
     FILE *fp1 = fopen(fileName, "r");
     FILE *fp2 = fopen(fileName2, "r");
-    createFile(fileName3);
-    FILE *fp3 = fopen(fileName3, "w");
-if (fp3 == NULL) {
-        perror("createFile");
-        fclose(fp1);
-        fclose(fp2);
-        return;
-    }
+    createFile("file3.txt");
+    FILE *fp3 = fopen("file3.txt", "w");
 
     if (fp1 == NULL || fp2 == NULL) {
         perror("fopen");
@@ -318,35 +312,6 @@ if (fp3 == NULL) {
 
         exit(0);      
     }
-}
-
-void duplicateFile(const char *fileName) {
-    FILE *fp = fopen(fileName, "r");
-    if (fp == NULL) {
-        perror("fopen");
-        return;
-    }
-
-    char dupliFile[50];
-    strcpy(dupliFile, "copy_");
-    strcat(dupliFile, fileName);
-
-    createFile(dupliFile);
-    FILE *dupliFp = fopen(dupliFile, "w");
-    if (dupliFp == NULL) {
-        perror("createFile");
-        fclose(fp);
-        return;
-    }
-    int character;
-    while ((character = fgetc(fp)) != EOF) {
-        fputc(character, dupliFp);
-    }
-
-    fclose(fp);
-    fclose(dupliFp);
-
-    printf("File '%s' duplicated successfully.\n", dupliFile);
 }
 
 void printHelp() {
