@@ -274,7 +274,7 @@ void changeOwnerAndGroup(const char *file_path, const char *user_name, const cha
 }
 
 
-void mergeFile(const char *fileName, const char *fileName2)
+void mergeFiles(const char *fileName, const char *fileName2)
 {
     int fd1[2];
     int fd2[2];
@@ -379,137 +379,141 @@ void printHelp() {
 	printf("Usage: ./myFileManager -o <file_name> <user_name> group_name> to change owner and group\n");
 	printf("Usage: ./myFileManager -o -u <file_name> <user_name> to change owner\n");
 	printf("Usage: ./myFileManager -o -g <file_name> <group_name> to change group\n");
+}
 
+void printMenu(){
+    printf("myFileManager> \n");
+    printf("1. Create a file\n");
+    printf("2. Delete a file\n");
+    printf("3. Rename a file\n");
+    printf("4. Move a file\n");
+    printf("5. List files in a directory\n");
+    printf("6. Show information about a file\n");
+    printf("7. Merge two files\n");
+    printf("8. Change permission\n");
+    printf("9. Change owner and group\n");
+    printf("10. Change owner\n");
+    printf("11. Change group\n");
+    printf("12. Exit\n");
+    printf("Enter your choice: ");
+}
 
+char* getInput(const char *prompt, char *input) {
+    printf(prompt);
+    scanf("%s", input);
+    return input;
 }
 
 int main(int argc, char *argv[])
 {
-    if (argc >= 2)
+    while (1)
     {
-        // check if the first argument is "-h" or "-help"
-        if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "-help") == 0)
+        printMenu();
+        //get input and check it is a number
+        if (scanf("%d", &choice) != 1 || choice < 1 || choice > 12)
         {
-            // print help message
-            printHelp();
-            return 0;
+            printf("Invalid input\n");
+            continue;
         }
-        // switch on the first argument
-        switch (argv[1][1])
-        {
-        case 'c':
-            // check if there are enough arguments
-            if (argc != 3)
-            {
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -c <file_name> to create a file\n");
-                break;
-            }
-            createFile(argv[2]);
-            break;
-        case 't':
-            // check if there are enough arguments
-            if (argc != 3)
-            {
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -t <file_name> to move file to trash\n");
-                break;
-            }
-            moveFileToTrash(argv[2]);
-            break;
-        case 'd':
-            // check if there are enough arguments
-            if (argc != 3)
-            {
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -d <file_name> to delete a file\n");
-                break;
-            }
-            deleteFile(argv[2]);
-            break;
-        case 'r':
-            // check if there are enough arguments
-            if (argc != 4)
-            {
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -r <old_file> <new_file> to rename a file\n");
-                break;
-            }
-            renameFile(argv[2], argv[3]);
-            break;
-        case 'm':
-            // check if there are enough arguments
-            if (argc != 4)
-            {
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -m source_file destination_file to move a file\n");
-            }
-            moveFile(argv[2], argv[3]);
-            break;
-        case 'l':
-            listFiles(argc > 2 ? argv[2] : ".");
-            break;
-        case 'i':
-            // check if there are enough arguments
-            if (argc != 3)
-            {
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -i <file_name> to show information about a file\n");
-                break;
-            }
-            printFileInfo(argv[2]);
-            break;
-        case 'g':
-            if (argc != 4)
-            {
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -mg <file_name> <file_name2> to merge two files\n");
-                break;
-            }
-            mergeFile(argv[2], argv[3]);
-            break;
-        case 'p':
-            if (argc != 4)
-            {
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -p <file_name> <permission> to change permission\n");
-                break;
-            }
-            mode_t permission = strtol(argv[3], NULL, 8);
-            changePermission(argv[2], permission);
-            break;
-        case 'o':
-            if (argc != 5)
-            {
-                printf("Invalid argument\n");
-                printf("Usage: ./myFileManager -o <file_name> <user_name> <group_name> to change owner and group\n");
-                printf("Usage: ./myFileManager -o -u <file_name> <user_name> to change owner\n");
-                printf("Usage: ./myFileManager -o -g <file_name> <group_name> to change group\n");
-                break;
-            }
-            if (strcmp(argv[2], "-u") == 0)
-            {
-                changeOwnerAndGroup(argv[3], argv[4], NULL);
-            }
-            else if (strcmp(argv[2], "-g") == 0)
-            {
-                changeOwnerAndGroup(argv[3], NULL, argv[4]);
-            }
-            else
-            {
-                changeOwnerAndGroup(argv[2], argv[3], argv[4]);
-            }
-            break;
 
+        //check if the user wants to exit
+        if (choice == 12)
+        {
+            break;
+        }
+
+        //switch on the choice
+        switch (choice)
+        {
+        case 1:
+            // request to input the file name
+            char fileName[100];
+            getInput("Enter file name: ", fileName);
+            createFile(fileName);
+            break;
+        case 2:
+            // request to input the file name
+            char fileName[100];
+            getInput("Enter file name: ", fileName);
+            deleteFile(fileName);
+            break;
+        case 3:
+            // request to input the file name
+            printf("Enter old file name: ");
+            scanf("%s", oldFileName);
+            printf("Enter new file name: ");
+            scanf("%s", newFileName);
+            renameFile(oldFileName, newFileName);
+            break;
+        case 4:
+            // request to input the file name
+            printf("Enter source file name: ");
+            scanf("%s", sourceFileName);
+            printf("Enter destination file name: ");
+            scanf("%s", destinationFileName);
+            moveFile( sourceFileName, destinationFileName);
+            break;
+        case 5:
+            // request to input the directory path
+            printf("Enter directory path: ");
+            scanf("%s", directoryPath);
+            listFiles( directoryPath);
+            break;
+        case 6:
+            // request to input the file name
+            printf("Enter file name: ");
+            scanf("%s", fileName);
+            printFileInfo(fileName);
+            break;
+        case 7:
+            // request to input the file name
+            printf("Enter file name: ");
+            scanf("%s", fileName);
+            printf("Enter file name2: ");
+            scanf("%s", fileName2);
+            mergeFiles(fileName, fileName2);
+            break;
+        case 8:
+            // request to input the file name
+            printf("Enter file name: ");
+            scanf("%s", fileName);
+            printf("Enter permission: ");
+            scanf("%s", p);
+            mode_t permission = strtol(p, NULL, 8);
+            changePermission(fileName, permission);
+            break;
+        case 9:
+            // request to input the file name
+            printf("Enter file name: ");
+            scanf("%s", fileName);
+            printf("Enter user name: ");
+            scanf("%s", user);
+            printf("Enter group name: ");
+            scanf("%s", group);
+            changeOwnerAndGroup(fileName, user, group);
+            break;
+        case 10:
+            // request to input the file name
+            printf("Enter file name: ");
+            scanf("%s", fileName);
+            printf("Enter user name: ");
+            scanf("%s", user);
+            changeOwnerAndGroup(fileName, user, NULL);
+            break;
+        case 11:
+            // request to input the file name
+            printf("Enter file name: ");
+            scanf("%s", fileName);
+            printf("Enter group name: ");
+            scanf("%s", group);
+            changeOwnerAndGroup(fileName, NULL, group);
+            break;
         default:
-            printHelp();
+            printf("Invalid choice\n");
+            break;
         }
-    }
-    else
-    {
-        // print help
-        printf("Usage: ./myFileManager -help or ./myFileManager -h to show help\n");
-    }
 
+    }
+    
     return 0;
 }
