@@ -399,7 +399,7 @@ void printMenu(){
 }
 
 char* getInput(const char *prompt, char *input) {
-    printf(prompt);
+    printf("%s", prompt);
     scanf("%s", input);
     return input;
 }
@@ -418,6 +418,7 @@ int main(int argc, char *argv[])
     char user[100];
     char group[100];
     char directory[100];
+    char directoryPath[100];
 
     while (1)
     {
@@ -463,7 +464,7 @@ int main(int argc, char *argv[])
             break;
         case 5:
             // request to input the directory path
-            getInput("Enter directory path: ", fileName);
+            getInput("Enter directory path: ", directoryPath);
             listFiles( directoryPath);
             break;
         case 6:
