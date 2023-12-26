@@ -406,9 +406,23 @@ char* getInput(const char *prompt, char *input) {
 
 int main(int argc, char *argv[])
 {
+    char fileName[100];
+    char oldFileName[100];
+    char newFileName[100];
+    char sourceFileName[100];
+    char destinationFileName[100];
+    char user_name[100];
+    char group_name[100];
+    char fileName2[100];
+    char p[100];
+    char user[100];
+    char group[100];
+    char directory[100];
+
     while (1)
     {
         printMenu();
+        int choice;
         //get input and check it is a number
         if (scanf("%d", &choice) != 1 || choice < 1 || choice > 12)
         {
@@ -427,85 +441,66 @@ int main(int argc, char *argv[])
         {
         case 1:
             // request to input the file name
-            char fileName[100];
             getInput("Enter file name: ", fileName);
             createFile(fileName);
             break;
         case 2:
             // request to input the file name
-            char fileName[100];
             getInput("Enter file name: ", fileName);
             deleteFile(fileName);
             break;
         case 3:
             // request to input the file name
-            printf("Enter old file name: ");
-            scanf("%s", oldFileName);
-            printf("Enter new file name: ");
-            scanf("%s", newFileName);
+            getInput("Enter old file name: ", oldFileName);
+            getInput("Enter new file name: ", newFileName);
             renameFile(oldFileName, newFileName);
             break;
         case 4:
             // request to input the file name
-            printf("Enter source file name: ");
-            scanf("%s", sourceFileName);
-            printf("Enter destination file name: ");
-            scanf("%s", destinationFileName);
+            getInput("Enter source file name: ", sourceFileName);
+            getInput("Enter destination file name: ", destinationFileName);
             moveFile( sourceFileName, destinationFileName);
             break;
         case 5:
             // request to input the directory path
-            printf("Enter directory path: ");
-            scanf("%s", directoryPath);
+            getInput("Enter directory path: ", fileName);
             listFiles( directoryPath);
             break;
         case 6:
             // request to input the file name
-            printf("Enter file name: ");
-            scanf("%s", fileName);
+            getInput("Enter file name: ", fileName);
             printFileInfo(fileName);
             break;
         case 7:
             // request to input the file name
-            printf("Enter file name: ");
-            scanf("%s", fileName);
-            printf("Enter file name2: ");
-            scanf("%s", fileName2);
+            getInput("Enter file name: ", fileName);
+            getInput("Enter file name: ", fileName2);
             mergeFiles(fileName, fileName2);
             break;
         case 8:
             // request to input the file name
-            printf("Enter file name: ");
-            scanf("%s", fileName);
-            printf("Enter permission: ");
-            scanf("%s", p);
+            getInput("Enter file name: ", fileName);
+            getInput("Enter permission: ", p);
             mode_t permission = strtol(p, NULL, 8);
             changePermission(fileName, permission);
             break;
         case 9:
             // request to input the file name
-            printf("Enter file name: ");
-            scanf("%s", fileName);
-            printf("Enter user name: ");
-            scanf("%s", user);
-            printf("Enter group name: ");
-            scanf("%s", group);
+            getInput("Enter file name: ", fileName);
+            getInput("Enter user name: ", user);
+            getInput("Enter group name: ", group);
             changeOwnerAndGroup(fileName, user, group);
             break;
         case 10:
             // request to input the file name
-            printf("Enter file name: ");
-            scanf("%s", fileName);
-            printf("Enter user name: ");
-            scanf("%s", user);
+            getInput("Enter file name: ", fileName);
+            getInput("Enter user name: ", user);
             changeOwnerAndGroup(fileName, user, NULL);
             break;
         case 11:
             // request to input the file name
-            printf("Enter file name: ");
-            scanf("%s", fileName);
-            printf("Enter group name: ");
-            scanf("%s", group);
+            getInput("Enter file name: ", fileName);
+            getInput("Enter group name: ", group);
             changeOwnerAndGroup(fileName, NULL, group);
             break;
         default:
