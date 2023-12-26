@@ -366,23 +366,10 @@ void mergeFiles(const char *fileName, const char *fileName2)
     }
 }
 
-void printHelp() {
-	printf("Usage: ./myFileManager -c <file_name> to create a file\n");
-	printf("Usage: ./myFileManager -d <file_name> to delete a file\n");
-	printf("Usage: ./myFileManager -r <old_file> <new_file> to rename a file\n");
-	printf("Usage: ./myFileManager -m <source_file> <destination_file> to move a file\n");
-	printf("Usage: ./myFileManager -l <directory_path> to list files in a directory\n");
-	printf("Usage: ./myFileManager -i <file_name> to show information about a file\n");
-	printf("Usage: ./myFileManager -h or ./myFileManager -help to show help\n");
-	printf("Usage: ./myFileManager -g <file_name> <file_name2> to merge two files\n");
-	printf("Usage: ./myFileManager -p <file_name> <permission> to change permission\n");
-	printf("Usage: ./myFileManager -o <file_name> <user_name> group_name> to change owner and group\n");
-	printf("Usage: ./myFileManager -o -u <file_name> <user_name> to change owner\n");
-	printf("Usage: ./myFileManager -o -g <file_name> <group_name> to change group\n");
-}
-
 void printMenu(){
-    printf("myFileManager> \n");
+    printf("\n");
+    printf("File Manager\n");
+    printf("-------------\n");
     printf("1. Create a file\n");
     printf("2. Delete a file\n");
     printf("3. Rename a file\n");
