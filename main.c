@@ -349,7 +349,6 @@ void mergeFiles(const char *fileName, const char *fileName2, const char *fileNam
         return;
     }
 
-    const int BUFFER_SIZE = 1024;
     char concat_str[BUFFER_SIZE];
     char concat_str2[BUFFER_SIZE];
 
@@ -473,9 +472,10 @@ void mergeFileAtLine(const char *fileMerge1, const char *fileMerge2, const char 
             lineCount++;
             if (lineCount == lineMerge)
             {
-                while (fgets(line, sizeof(line), fp2) != NULL)
+                char line_2[BUFFER_SIZE];
+                while (fgets(line_2, sizeof(line_2), fp2) != NULL)
                 {
-                    write(pipefd[1], line, strlen(line));
+                    write(pipefd[1], line_2, strlen(line_2));
                 }
             }
             write(pipefd[1], line, strlen(line));
@@ -676,7 +676,7 @@ int main(int argc, char *argv[])
                     printf("Invalid choice\n");
                     break;
                 }
-            }
+            } while (1);
 
             break;
         case 8:
