@@ -437,7 +437,8 @@ void printMenu(){
     printf("9. Change owner and group\n");
     printf("10. Change owner\n");
     printf("11. Change group\n");
-    printf("12. Exit\n");
+    printf("12. Save file information\n");
+    printf("13. Exit\n");
     printf("Enter your choice: ");
 }
 
@@ -468,14 +469,14 @@ int main(int argc, char *argv[])
         printMenu();
         int choice;
         //get input and check it is a number
-        if (scanf("%d", &choice) != 1 || choice < 1 || choice > 12)
+        if (scanf("%d", &choice) != 1 || choice < 1 || choice > 13)
         {
             printf("Invalid input\n");
             continue;
         }
 
         //check if the user wants to exit
-        if (choice == 12)
+        if (choice == 13)
         {
             break;
         }
@@ -547,6 +548,11 @@ int main(int argc, char *argv[])
             getInput("Enter file name: ", fileName);
             getInput("Enter group name: ", group);
             changeOwnerAndGroup(fileName, NULL, group);
+            break;
+        case 12:
+            // request to store file information in shared memory
+            getInput("Enter file name: ", fileName);
+            storeFileInfoInSharedMemory(fileName);
             break;
         default:
             printf("Invalid choice\n");
