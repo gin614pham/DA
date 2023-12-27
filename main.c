@@ -134,6 +134,36 @@ void createFile(const char *fileName)
     }
 }
 
+int createDirectory(const char *path) {
+    struct stat st = {0};
+
+    if (stat(path, &st) == -1) {
+        // Directory doesn't exist, create it
+        if (mkdir(path, 0777) != 0) {
+            // Check if the failure is due to non-existent parent directories
+            char *last_slash = strrchr(path, '/');
+            if (last_slash != NULL) {
+                *last_slash = '\0';  // Remove the last component of the path
+                if (createDirectory(path) != 0) {
+                    perror("Error creating directory");
+                    return -1;
+                }
+                *last_slash = '/';  // Restore the path
+                // Retry creating the directory
+                if (mkdir(path, 0777) != 0) {
+                    perror("Error creating directory");
+                    return -1;
+                }
+            } else {
+                perror("Error creating directory");
+                return -1;
+            }
+        }
+    }
+
+    return 0;  // Directory was created or already exists
+}
+
 void moveFileToTrash(const char *fileName)
 {
     // Create file path
@@ -147,12 +177,14 @@ void moveFileToTrash(const char *fileName)
     char trash_path[PATH_MAX + 1];
     strcpy(trash_path, home_path);
     strcat(trash_path, "/.local/share/Trash/files/");
+    createDirectory(trash_path);
     strcat(trash_path, fileName);
 
     // Create path to trash info
     char trash_info_path[PATH_MAX + 1];
     strcpy(trash_info_path, home_path);
     strcat(trash_info_path, "/.local/share/Trash/info/");
+    createDirectory(trash_info_path);
     strcat(trash_info_path, fileName);
     strcat(trash_info_path, ".trashinfo");
 
@@ -214,16 +246,22 @@ void moveFileToTrash(const char *fileName)
     printf("Moved file %s to trash.\n", fileName);
 }
 
-void deleteFile(const char *fileName)
-{
-    // delete a file
-    if (remove(fileName) == 0)
-    {
-        printf("File '%s' deleted successfully.\n", fileName);
-    }
-    else
-    {
-        perror("remove");
+void deleteFile(const char *fileName) {
+    // Prompt the user before deleting the file
+    printf("Are you sure you want to delete the file '%s'? (y/n): ", fileName);
+
+    char response;
+    scanf(" %c", &response);  // Notice the space before %c to consume the newline character
+
+    if (response == 'y' || response == 'Y') {
+        // Delete the file
+        if (remove(fileName) == 0) {
+            printf("File '%s' deleted successfully.\n", fileName);
+        } else {
+            perror("remove");
+        }
+    } else {
+        printf("File deletion canceled.\n");
     }
 }
 
@@ -427,18 +465,19 @@ void printMenu()
     printf("File Manager\n");
     printf("-------------\n");
     printf("1. Create a file\n");
-    printf("2. Delete a file\n");
-    printf("3. Rename a file\n");
-    printf("4. Move a file\n");
-    printf("5. List files in a directory\n");
-    printf("6. Show information about a file\n");
-    printf("7. Merge two files\n");
-    printf("8. Change permission\n");
-    printf("9. Change owner and group\n");
-    printf("10. Change owner\n");
-    printf("11. Change group\n");
-    printf("12. Save file information\n");
-    printf("13. Exit\n");
+    printf("2. Move a file to trash\n");
+    printf("3. Permanently delete a file\n");
+    printf("4. Rename a file\n");
+    printf("5. Move a file\n");
+    printf("6. List files in a directory\n");
+    printf("7. Show information about a file\n");
+    printf("8. Merge two files\n");
+    printf("9. Change permission\n");
+    printf("10. Change owner and group\n");
+    printf("11. Change owner\n");
+    printf("12. Change group\n");
+    printf("13. Save file information\n");
+    printf("14. Exit\n");
     printf("Enter your choice: ");
 }
 
@@ -471,14 +510,14 @@ int main(int argc, char *argv[])
         printMenu();
         int choice;
         // get input and check it is a number
-        if (scanf("%d", &choice) != 1 || choice < 1 || choice > 13)
+        if (scanf("%d", &choice) != 1 || choice < 1 || choice > 14)
         {
             printf("Invalid input\n");
             continue;
         }
 
         // check if the user wants to exit
-        if (choice == 13)
+        if (choice == 14)
         {
             break;
         }
@@ -495,31 +534,36 @@ int main(int argc, char *argv[])
         case 2:
             // request to input the file name
             getInput("Enter file name: ", fileName);
-            deleteFile(fileName);
+            moveFileToTrash(fileName);
             break;
         case 3:
+            // request to input the file name
+            getInput("Enter file name: ", fileName);
+            deleteFile(fileName);
+            break;
+        case 4:
             // request to input the file name
             getInput("Enter old file name: ", oldFileName);
             getInput("Enter new file name: ", newFileName);
             renameFile(oldFileName, newFileName);
             break;
-        case 4:
+        case 5:
             // request to input the file name
             getInput("Enter source file name: ", sourceFileName);
             getInput("Enter destination file name: ", destinationFileName);
             moveFile(sourceFileName, destinationFileName);
             break;
-        case 5:
+        case 6:
             // request to input the directory path
             getInput("Enter directory path: ", directoryPath);
             listFiles(directoryPath);
             break;
-        case 6:
+        case 7:
             // request to input the file name
             getInput("Enter file name: ", fileName);
             printFileInfo(fileName);
             break;
-        case 7:
+        case 8:
             // request to input the file names
             getInput("Enter file name 1: ", fileName);
             while (access(fileName, F_OK) == -1)
@@ -548,33 +592,33 @@ int main(int argc, char *argv[])
             // Valid file names, merge files
             mergeFiles(fileName, fileName2, fileName3);
             break;
-        case 8:
+        case 9:
             // request to input the file name
             getInput("Enter file name: ", fileName);
             getInput("Enter permission: ", p);
             mode_t permission = strtol(p, NULL, 8);
             changePermission(fileName, permission);
             break;
-        case 9:
+        case 10:
             // request to input the file name
             getInput("Enter file name: ", fileName);
             getInput("Enter user name: ", user);
             getInput("Enter group name: ", group);
             changeOwnerAndGroup(fileName, user, group);
             break;
-        case 10:
+        case 11:
             // request to input the file name
             getInput("Enter file name: ", fileName);
             getInput("Enter user name: ", user);
             changeOwnerAndGroup(fileName, user, NULL);
             break;
-        case 11:
+        case 12:
             // request to input the file name
             getInput("Enter file name: ", fileName);
             getInput("Enter group name: ", group);
             changeOwnerAndGroup(fileName, NULL, group);
             break;
-        case 12:
+        case 13:
             // request to store file information in shared memory
             getInput("Enter file name: ", fileName);
             storeFileInfoInSharedMemory(fileName);
