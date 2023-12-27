@@ -330,17 +330,17 @@ void changeOwnerAndGroup(const char *file_path, const char *user_name, const cha
     }
 }
 
-
 void mergeFiles(const char *fileName, const char *fileName2, const char *fileName3) {
     int fd1[2];
     int fd2[2];
 
     FILE *fp1 = fopen(fileName, "r");
     FILE *fp2 = fopen(fileName2, "r");
+
     createFile(fileName3);
     FILE *fp3 = fopen(fileName3, "w");
 
-    if (fp1 == NULL || fp2 == NULL) {
+    if (fp1 == NULL || fp2 == NULL || fp3 == NULL) {
         perror("fopen");
         return;
     }
@@ -362,62 +362,68 @@ void mergeFiles(const char *fileName, const char *fileName2, const char *fileNam
         perror("fork");
         return;
     }
-
-    //parent process
+    // parent process (P1)
     else if (p > 0) {
         char concat_str[60000];
 
         close(fd1[0]);
 
-        while (fgets(concat_str, 100, fp1) != NULL) {
-            write(fd1[1], concat_str, strlen(concat_str) + 1);
-        }
-        printf("P1 %s\n", concat_str);
+        // Read the entire content of file 1
+        fseek(fp1, 0, SEEK_END);
+        long fileSize = ftell(fp1);
+        rewind(fp1);
+
+        fread(concat_str, sizeof(char), fileSize, fp1);
+
+        // Send the content to the child process through pipe
+        write(fd1[1], concat_str, fileSize);
         close(fd1[1]);
 
         wait(NULL);
 
         close(fd2[1]);
 
-        read(fd2[0], concat_str, 100);
-        printf("P2 %s\n", concat_str);
+        // Read the combined content from the child process through pipe
+        read(fd2[0], concat_str, 60000);
         fprintf(fp3, "%s", concat_str);
         close(fd2[0]);
         fclose(fp3);
     }
-    //child process
+    // child process (P2)
     else {
         close(fd1[1]);
+
         char concat_str[60000];
         char concat_str2[60000];
-        read(fd1[0], concat_str, 100);
-        printf("C1 %s\n", concat_str);
 
-        while (fgets(concat_str2, 100, fp2) != NULL) {
-            int k = strlen(concat_str);
-            for (int i = 0; i < strlen(concat_str2); i++) {
-                concat_str[k++] = concat_str2[i];
-            }
-            concat_str[k] = '\0';
+        // Read the content received from the parent through pipe
+        int bytesRead = read(fd1[0], concat_str, 60000);
+        printf("C1 Read %d bytes\n", bytesRead);
+
+        // Process the content if needed
+
+        // Read the content from file 2
+        while (fgets(concat_str2, 60000, fp2) != NULL) {
+            strcat(concat_str, concat_str2);
         }
+
         printf("C2 %s\n", concat_str);
 
         close(fd1[0]);
         close(fd2[0]);
 
+        // Send the combined content to the parent through pipe
         write(fd2[1], concat_str, strlen(concat_str) + 1);
-        printf("C4 %s\n", concat_str);
         close(fd2[1]);
 
         fclose(fp1);
         fclose(fp2);
 
-        exit(0);      
+        exit(0);
     }
 }
 
-void printMenu()
-{
+void printMenu(){
     printf("\n");
     printf("File Manager\n");
     printf("-------------\n");
@@ -437,8 +443,7 @@ void printMenu()
     printf("Enter your choice: ");
 }
 
-char *getInput(const char *prompt, char *input)
-{
+char* getInput(const char *prompt, char *input) {
     printf("%s", prompt);
     scanf("%s", input);
     return input;
@@ -465,20 +470,20 @@ int main(int argc, char *argv[])
     {
         printMenu();
         int choice;
-        // get input and check it is a number
+        //get input and check it is a number
         if (scanf("%d", &choice) != 1 || choice < 1 || choice > 13)
         {
             printf("Invalid input\n");
             continue;
         }
 
-        // check if the user wants to exit
+        //check if the user wants to exit
         if (choice == 13)
         {
             break;
         }
 
-        // switch on the choice
+        //switch on the choice
         switch (choice)
         {
         case 1:
@@ -502,12 +507,12 @@ int main(int argc, char *argv[])
             // request to input the file name
             getInput("Enter source file name: ", sourceFileName);
             getInput("Enter destination file name: ", destinationFileName);
-            moveFile(sourceFileName, destinationFileName);
+            moveFile( sourceFileName, destinationFileName);
             break;
         case 5:
             // request to input the directory path
             getInput("Enter directory path: ", directoryPath);
-            listFiles(directoryPath);
+            listFiles( directoryPath);
             break;
         case 6:
             // request to input the file name
@@ -578,7 +583,8 @@ int main(int argc, char *argv[])
             printf("Invalid choice\n");
             break;
         }
-    }
 
+    }
+    
     return 0;
 }
