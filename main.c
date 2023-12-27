@@ -518,7 +518,6 @@ void mergeFileAtLine(const char *fileMerge1, const char *fileMerge2, const char 
     {
         printf("Invalid line number\n");
     }
-    // create fileFinal if it doesn't exist and open it
     // Create fileFinal if it doesn't exist and open it for writing
     FILE *fp3 = fopen(fileFinal, "w");
     if (fp3 == NULL)
@@ -572,6 +571,7 @@ void mergeFileAtLine(const char *fileMerge1, const char *fileMerge2, const char 
                 write(pipefd[1], line_2, strlen(line_2));
             }
         }
+        write(pipefd[1], "", 1);
 
         close(pipefd[1]);
 
