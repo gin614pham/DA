@@ -15,6 +15,23 @@
 
 #define BUFFER_SIZE 1024
 
+char fileName[100];
+char oldFileName[100];
+char newFileName[100];
+char sourceFileName[100];
+char destinationFileName[100];
+char fileName2[100];
+char fileName3[100];
+char p[100];
+char user[100];
+char group[100];
+char directoryPath[100];
+char fileNameMerge1[100];
+char fileNameMerge2[100];
+char fileNameMergeFinal[100];
+int lineMerge;
+char line[100];
+
 void storeFileInfoInSharedMemory(const char *filePath);
 struct FileInfo
 {
@@ -136,34 +153,42 @@ void createFile(const char *fileName)
     }
 }
 
-int createDirectory(const char *path) {
+int createDirectory(const char *path)
+{
     struct stat st = {0};
 
-    if (stat(path, &st) == -1) {
+    if (stat(path, &st) == -1)
+    {
         // Directory doesn't exist, create it
-        if (mkdir(path, 0777) != 0) {
+        if (mkdir(path, 0777) != 0)
+        {
             // Check if the failure is due to non-existent parent directories
             char *last_slash = strrchr(path, '/');
-            if (last_slash != NULL) {
-                *last_slash = '\0';  // Remove the last component of the path
-                if (createDirectory(path) != 0) {
+            if (last_slash != NULL)
+            {
+                *last_slash = '\0'; // Remove the last component of the path
+                if (createDirectory(path) != 0)
+                {
                     perror("Error creating directory");
                     return -1;
                 }
-                *last_slash = '/';  // Restore the path
+                *last_slash = '/'; // Restore the path
                 // Retry creating the directory
-                if (mkdir(path, 0777) != 0) {
+                if (mkdir(path, 0777) != 0)
+                {
                     perror("Error creating directory");
                     return -1;
                 }
-            } else {
+            }
+            else
+            {
                 perror("Error creating directory");
                 return -1;
             }
         }
     }
 
-    return 0;  // Directory was created or already exists
+    return 0; // Directory was created or already exists
 }
 
 void moveFileToTrash(const char *fileName)
@@ -248,21 +273,28 @@ void moveFileToTrash(const char *fileName)
     printf("Moved file %s to trash.\n", fileName);
 }
 
-void deleteFile(const char *fileName) {
+void deleteFile(const char *fileName)
+{
     // Prompt the user before deleting the file
     printf("Are you sure you want to delete the file '%s'? (y/n): ", fileName);
 
     char response;
-    scanf(" %c", &response);  // Notice the space before %c to consume the newline character
+    scanf(" %c", &response); // Notice the space before %c to consume the newline character
 
-    if (response == 'y' || response == 'Y') {
+    if (response == 'y' || response == 'Y')
+    {
         // Delete the file
-        if (remove(fileName) == 0) {
+        if (remove(fileName) == 0)
+        {
             printf("File '%s' deleted successfully.\n", fileName);
-        } else {
+        }
+        else
+        {
             perror("remove");
         }
-    } else {
+    }
+    else
+    {
         printf("File deletion canceled.\n");
     }
 }
@@ -370,7 +402,8 @@ void changeOwnerAndGroup(const char *file_path, const char *user_name, const cha
     }
 }
 
-void mergeFiles(const char *fileName, const char *fileName2, const char *fileName3) {
+void mergeFiles(const char *fileName, const char *fileName2, const char *fileName3)
+{
     int fd1[2];
     int fd2[2];
 
@@ -380,17 +413,20 @@ void mergeFiles(const char *fileName, const char *fileName2, const char *fileNam
     createFile(fileName3);
     FILE *fp3 = fopen(fileName3, "w");
 
-    if (fp1 == NULL || fp2 == NULL || fp3 == NULL) {
+    if (fp1 == NULL || fp2 == NULL || fp3 == NULL)
+    {
         perror("fopen");
         return;
     }
 
-    if (pipe(fd1) == -1) {
+    if (pipe(fd1) == -1)
+    {
         perror("pipe");
         return;
     }
 
-    if (pipe(fd2) == -1) {
+    if (pipe(fd2) == -1)
+    {
         perror("pipe");
         return;
     }
@@ -398,12 +434,14 @@ void mergeFiles(const char *fileName, const char *fileName2, const char *fileNam
     pid_t p;
     p = fork();
 
-    if (p < 0) {
+    if (p < 0)
+    {
         perror("fork");
         return;
     }
     // parent process (P1)
-    else if (p > 0) {
+    else if (p > 0)
+    {
         char concat_str[60000];
 
         close(fd1[0]);
@@ -430,7 +468,8 @@ void mergeFiles(const char *fileName, const char *fileName2, const char *fileNam
         fclose(fp3);
     }
     // child process (P2)
-    else {
+    else
+    {
         close(fd1[1]);
 
         char concat_str[60000];
@@ -443,7 +482,8 @@ void mergeFiles(const char *fileName, const char *fileName2, const char *fileNam
         // Process the content if needed
 
         // Read the content from file 2
-        while (fgets(concat_str2, 60000, fp2) != NULL) {
+        while (fgets(concat_str2, 60000, fp2) != NULL)
+        {
             strcat(concat_str, concat_str2);
         }
 
@@ -478,14 +518,16 @@ void mergeFileAtLine(const char *fileMerge1, const char *fileMerge2, const char 
     {
         printf("Invalid line number\n");
     }
-
-    // create fileFinal and open it
-    createFile(fileFinal);
+    // create fileFinal if it doesn't exist and open it
+    // Create fileFinal if it doesn't exist and open it for writing
     FILE *fp3 = fopen(fileFinal, "w");
     if (fp3 == NULL)
     {
-        perror("fopen");
+        perror("Error opening file");
+        exit(EXIT_FAILURE);
     }
+    // Move the file pointer to the beginning of the file
+    fseek(fp3, 0, SEEK_SET);
 
     int pipefd[2];
     pid_t pid;
@@ -521,6 +563,15 @@ void mergeFileAtLine(const char *fileMerge1, const char *fileMerge2, const char 
             }
             write(pipefd[1], line, strlen(line));
         }
+        if (lineMerge > lineCount)
+        {
+
+            char line_2[BUFFER_SIZE];
+            while (fgets(line_2, sizeof(line_2), fp2) != NULL)
+            {
+                write(pipefd[1], line_2, strlen(line_2));
+            }
+        }
 
         close(pipefd[1]);
 
@@ -537,6 +588,12 @@ void mergeFileAtLine(const char *fileMerge1, const char *fileMerge2, const char 
             fputs(line, fp3);
         }
 
+        fclose(fp1);
+        fclose(fp2);
+        fclose(fp3);
+
+        printf("Files merged successfully.\n");
+
         close(pipefd[0]);
         exit(0);
     }
@@ -546,7 +603,8 @@ void mergeFileAtLine(const char *fileMerge1, const char *fileMerge2, const char 
     fclose(fp3);
 }
 
-void printMenu(){
+void printMenu()
+{
     printf("\n");
     printf("File Manager\n");
     printf("-------------\n");
@@ -587,7 +645,8 @@ void printMenuMerge()
     printf("Enter your choice: ");
 }
 
-void printMenuDelete(){
+void printMenuDelete()
+{
     printf("\n");
     printf("File Manager\n");
     printf("-------------\n");
@@ -604,34 +663,142 @@ char *getInput(const char *prompt, char *input)
     return input;
 }
 
+void menuChangeOwnership()
+{
+    do
+    {
+        printMenuChangeOwnership();
+        int choice_ownership;
+        if (scanf("%d", &choice_ownership) != 1 || choice_ownership < 1 || choice_ownership > 4)
+        {
+            printf("Invalid input\n");
+            continue;
+        }
+        if (choice_ownership == 4)
+        {
+            break;
+        }
+        switch (choice_ownership)
+        {
+        case 1:
+            getInput("Enter file name: ", fileName);
+            getInput("Enter user name: ", user);
+            changeOwnerAndGroup(fileName, user, NULL);
+            break;
+        case 2:
+            getInput("Enter file name: ", fileName);
+            getInput("Enter group name: ", group);
+            changeOwnerAndGroup(fileName, NULL, group);
+            break;
+        case 3:
+            getInput("Enter file name: ", fileName);
+            getInput("Enter user name: ", user);
+            getInput("Enter group name: ", group);
+            changeOwnerAndGroup(fileName, user, group);
+            break;
+        default:
+            printf("Invalid choice\n");
+            break;
+        }
+    } while (1);
+}
+
+void menuDelete()
+{
+    do
+    {
+        printMenuDelete();
+        int choice_delete;
+        if (scanf("%d", &choice_delete) != 1 || choice_delete < 1 || choice_delete > 3)
+        {
+            printf("Invalid input\n");
+            continue;
+        }
+
+        if (choice_delete == 3)
+        {
+            break;
+        }
+
+        switch (choice_delete)
+        {
+        case 1:
+            getInput("Enter file name: ", fileName);
+            deleteFile(fileName);
+            break;
+        case 2:
+            getInput("Enter file name: ", fileName);
+            moveFileToTrash(fileName);
+        }
+
+    } while (1);
+}
+
+void menuMerge()
+{
+    do
+    {
+        printMenuMerge();
+        int choice_merge;
+        if (scanf("%d", &choice_merge) != 1 || choice_merge < 1 || choice_merge > 3)
+        {
+            printf("Invalid input\n");
+            continue;
+        }
+
+        if (choice_merge == 3)
+        {
+            break;
+        }
+
+        switch (choice_merge)
+        {
+        case 1:
+            getInput("Enter file name 1: ", fileName);
+            while (access(fileName, F_OK) == -1)
+            {
+                printf("File '%s' does not exist.\n", fileName);
+                getInput("Enter file name 1: ", fileName);
+            }
+
+            getInput("Enter file name 2: ", fileName2);
+            while (access(fileName2, F_OK) == -1)
+            {
+                printf("File '%s' does not exist.\n", fileName2);
+                getInput("Enter file name 2: ", fileName2);
+            }
+
+            getInput("Enter file merge name: ", fileName3);
+            while (access(fileName3, F_OK) != -1)
+            {
+                printf("File '%s' already exists.\n", fileName3);
+                getInput("Enter file merge name: ", fileName3);
+            }
+
+            mergeFiles(fileName, fileName2, fileName3);
+            break;
+        case 2:
+            getInput("Enter file name you want to merge at line: ", fileNameMerge1);
+            getInput("Enter line number: ", line);
+            lineMerge = strtol(line, NULL, 10);
+            getInput("Enter file merge name: ", fileNameMerge2);
+            getInput("Enter final file merge name: ", fileNameMergeFinal);
+            mergeFileAtLine(fileNameMerge1, fileNameMerge2, fileNameMergeFinal, lineMerge);
+            break;
+        default:
+            printf("Invalid choice\n");
+            break;
+        }
+    } while (1);
+}
+
 int main(int argc, char *argv[])
 {
-     char fileName[100];
-    char oldFileName[100];
-    char newFileName[100];
-    char sourceFileName[100];
-    char destinationFileName[100];
-    char user_name[100];
-    char group_name[100];
-    char fileName2[100];
-    char fileName3[100];
-    char p[100];
-    char user[100];
-    char group[100];
-    char directory[100];
-    char directoryPath[100];
-    char fileNameMerge1[100];
-    char fileNameMerge2[100];
-    char fileNameMergeFinal[100];
-    char delete_at[100];
-    int lineMerge;
-    char line[100];
-
     while (1)
     {
         printMenu();
         int choice;
-      
+
         // get input and check it is a number
         if (scanf("%d", &choice) != 1 || choice < 1 || choice > 14)
 
@@ -647,7 +814,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-        //switch on the choice
+        // switch on the choice
         switch (choice)
         {
         case 1:
@@ -657,33 +824,7 @@ int main(int argc, char *argv[])
             storeFileInfoInSharedMemory(fileName);
             break;
         case 2:
-            do {
-                printMenuDelete();
-                int choice_delete;
-                if (scanf("%d", &choice_delete) != 1 || choice_delete < 1 || choice_delete > 3)
-                {
-                    printf("Invalid input\n");
-                    continue;
-                }
-
-                if (choice_delete == 3)
-                {
-                    break;
-                }
-
-                switch (choice_delete)
-                {
-                case 1:
-                    getInput("Enter file name: ", fileName);
-                    deleteFile(fileName);
-                    break;
-                case 2:
-                    getInput("Enter file name: ", fileName);
-                    moveFileToTrash(fileName);
-                }
-
-
-            } while (1);
+            menuDelete();
             break;
         case 3:
             getInput("Enter old file name: ", oldFileName);
@@ -693,72 +834,18 @@ int main(int argc, char *argv[])
         case 4:
             getInput("Enter source file name: ", sourceFileName);
             getInput("Enter destination file name: ", destinationFileName);
-            moveFile( sourceFileName, destinationFileName);
+            moveFile(sourceFileName, destinationFileName);
             break;
         case 5:
             getInput("Enter directory path: ", directoryPath);
-            listFiles( directoryPath);
+            listFiles(directoryPath);
             break;
         case 6:
             getInput("Enter file name: ", fileName);
             printFileInfo(fileName);
             break;
         case 7:
-            do
-            {
-                printMenuMerge();
-                int choice_merge;
-                if (scanf("%d", &choice_merge) != 1 || choice_merge < 1 || choice_merge > 2)
-                {
-                    printf("Invalid input\n");
-                    continue;
-                }
-
-                if (choice_merge == 3)
-                {
-                    break;
-                }
-
-                switch (choice_merge)
-                {
-                case 1:
-                    getInput("Enter file name 1: ", fileName);
-                    while (access(fileName, F_OK) == -1)
-                    {
-                        printf("File '%s' does not exist.\n", fileName);
-                        getInput("Enter file name 1: ", fileName);
-                    }
-
-                    getInput("Enter file name 2: ", fileName2);
-                    while (access(fileName2, F_OK) == -1)
-                    {
-                        printf("File '%s' does not exist.\n", fileName2);
-                        getInput("Enter file name 2: ", fileName2);
-                    }
-
-                    getInput("Enter file merge name: ", fileName3);
-                    while (access(fileName3, F_OK) != -1)
-                    {
-                        printf("File '%s' already exists.\n", fileName3);
-                        getInput("Enter file merge name: ", fileName3);
-                    }
-
-                    mergeFiles(fileName, fileName2, fileName3);
-                    break;
-                case 2:
-                    getInput("Enter file name you want to merge at line: ", fileNameMerge1);
-                    getInput("Enter line number: ", line);
-                    lineMerge = strtol(line, NULL, 10);
-                    getInput("Enter file merge name: ", fileNameMerge2);
-                    getInput("Enter final file merge name: ", fileNameMergeFinal);
-                    mergeFileAtLine(fileNameMerge1, fileNameMerge2, fileNameMergeFinal, lineMerge);
-                    break;
-                default:
-                    printf("Invalid choice\n");
-                    break;
-                }
-            } while (1);
-
+            menuMerge();
             break;
         case 8:
             getInput("Enter file name: ", fileName);
@@ -767,42 +854,7 @@ int main(int argc, char *argv[])
             changePermission(fileName, permission);
             break;
         case 9:
-             do
-            {
-                printMenuChangeOwnership();
-                int choice_ownership;
-                if (scanf("%d", &choice_ownership) != 1 || choice_ownership < 1 || choice_ownership > 4)
-                {
-                    printf("Invalid input\n");
-                    continue;
-                }
-                if (choice_ownership == 4)
-                {
-                    break;
-                }
-                switch (choice_ownership)
-                {
-                case 1:
-                    getInput("Enter file name: ", fileName);
-                    getInput("Enter user name: ", user);
-                    changeOwnerAndGroup(fileName, user, NULL);
-                    break;
-                case 2:
-                    getInput("Enter file name: ", fileName);
-                    getInput("Enter group name: ", group);
-                    changeOwnerAndGroup(fileName, NULL, group);
-                    break;
-                case 3:
-                    getInput("Enter file name: ", fileName);
-                    getInput("Enter user name: ", user);
-                    getInput("Enter group name: ", group);
-                    changeOwnerAndGroup(fileName, user, group);
-                    break;
-                default:
-                    printf("Invalid choice\n");
-                    break;
-                }
-            } while (1);
+            menuChangeOwnership();
             break;
         case 10:
             // request to store file information in shared memory
@@ -816,8 +868,7 @@ int main(int argc, char *argv[])
             printf("Invalid choice\n");
             break;
         }
-
     }
-    
+
     return 0;
 }
