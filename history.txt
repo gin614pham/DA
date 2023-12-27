@@ -1,0 +1,31 @@
+[2023-12-28 01:38:42] created file 'cc.txt'.
+[2023-12-28 01:38:42] saved information of file 'cc.txt'.
+[2023-12-28 01:39:21] created file 'cc.txt'.
+[2023-12-28 01:39:21] saved information of file 'cc.txt'.
+[2023-12-28 01:42:49] created file 'ccc.txt'.
+[2023-12-28 01:42:49] saved information of file 'ccc.txt'.
+[2023-12-28 01:45:49] created file 'xc.txt'.
+[2023-12-28 01:45:49] saved information of file 'xc.txt'.
+[2023-12-28 01:56:41] created file 'xy.txt'.
+[2023-12-28 01:56:41] saved information of file 'xy.txt'.
+[2023-12-28 01:58:03] created file 'xyz.txt'.
+[2023-12-28 01:58:03] saved information of file 'xyz.txt'.
+[2023-12-28 01:58:41] created file 'xxx.txt'.
+[2023-12-28 01:58:41] saved information of file 'xxx.txt'.
+[2023-12-28 02:00:40] created file 'xxx.txt'.
+[2023-12-28 02:00:40] saved information of file 'xxx.txt'.
+[2023-12-28 02:00:47] created file 'xyy.txt'.
+[2023-12-28 02:00:47] saved information of file 'xyy.txt'.
+[2023-12-28 02:00:58] created file 'xyz.txt'.
+[2023-12-28 02:00:58] saved information of file 'xyz.txt'.
+[2023-12-28 02:16:02] moved file 'cc.txt' to trash.
+[2023-12-28 02:48:14] renamed file 'cc.txt' to 'ccc.txt'.
+[2023-12-28 03:09:21] moved file 'cc.txt' to 'ccc.txt'.
+[2023-12-28 03:12:16] created file 't4e1.txt'.
+[2023-12-28 03:12:16] merged file 'te.txt' and 'te2.txt' to 't4e1.txt'.
+[2023-12-28 03:17:48] created file 'copy_cc.txt'.
+[2023-12-28 03:17:48] duplicated file 'cc.txt'.
+[2023-12-28 03:18:52] created file 'copy_cc.txt'.
+[2023-12-28 03:18:52] duplicated file 'cc.txt'.
+[2023-12-28 03:19:32] created file 'copy_cc.txt'.
+[2023-12-28 03:19:32] duplicated file 'cc.txt'.

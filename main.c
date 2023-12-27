@@ -14,6 +14,57 @@
 #include <linux/limits.h>
 #include <stdarg.h>
 
+
+#define MAX_STACK_SIZE 100
+
+
+typedef struct {
+    int choice;
+    char fileName[100];
+    char oldFileName[100];
+    char newFileName[100]; 
+    char sourceFileName[100];
+    char destinationFileName[100];
+    char permission[100];
+    char user[100];
+    char group[100];
+    // Các trạng thái khác cần lưu trữ tùy thuộc vào lệnh
+} CommandState;
+
+typedef struct {
+    CommandState states[MAX_STACK_SIZE];
+    int top;
+} UndoStack;
+
+// Khởi tạo ngăn xếp
+void initializeStack(UndoStack *stack) {
+    stack->top = -1;
+}
+
+// Thêm một trạng thái vào ngăn xếp
+void push(UndoStack *stack, CommandState state) {
+    if (stack->top < MAX_STACK_SIZE - 1) {
+        stack->top++;
+        stack->states[stack->top] = state;
+    } else {
+        printf("Ngăn xếp đầy. Không thể thêm trạng thái mới.\n");
+    }
+}
+
+// Lấy trạng thái cuối cùng ra khỏi ngăn xếp
+CommandState pop(UndoStack *stack) {
+    CommandState emptyState = {0};  // Trạng thái rỗng
+    if (stack->top >= 0) {
+        CommandState state = stack->states[stack->top];
+        stack->top--;
+        return state;
+    } else {
+        printf("Ngăn xếp rỗng. Không thể hoàn tác nữa.\n");
+        return emptyState;
+    }
+}
+
+
 void history(const char *format, ...) {
     FILE *historyFile = fopen("history.txt", "a");
 
@@ -276,6 +327,66 @@ void moveFileToTrash(const char *fileName)
 
     printf("Moved file %s to trash.\n", fileName);
     history("moved file '%s' to trash.", fileName);
+}
+
+
+void restoreFileFromTrash(const char *fileName)
+{
+    // Create home path
+    char *home_path = getenv("HOME");
+
+    // Create path to trash
+    char trash_path[PATH_MAX + 1];
+    strcpy(trash_path, home_path);
+    strcat(trash_path, "/.local/share/Trash/files/");
+    strcat(trash_path, fileName);
+
+    // Create path to trash info
+    char trash_info_path[PATH_MAX + 1];
+    strcpy(trash_info_path, home_path);
+    strcat(trash_info_path, "/.local/share/Trash/info/");
+    strcat(trash_info_path, fileName);
+    strcat(trash_info_path, ".trashinfo");
+
+    // Check if the file and its corresponding info file in trash exist
+    if (access(trash_path, F_OK) == 0 && access(trash_info_path, F_OK) == 0)
+    {
+        // Open trash info file
+        FILE *trash_info_file = fopen(trash_info_path, "r");
+        if (trash_info_file == NULL)
+        {
+            perror("fopen trash info");
+            return;
+        }
+
+        // Read information from the trash info file
+        char path_from_info[PATH_MAX + 1];
+        char deletion_date[50];
+        if (fscanf(trash_info_file, "[Trash Info]\nPath=%s\nDeletionDate=%s", path_from_info, deletion_date) != 2)
+        {
+            fprintf(stderr, "Error reading trash info file.\n");
+            fclose(trash_info_file);
+            return;
+        }
+
+        // Close the trash info file
+        fclose(trash_info_file);
+
+        // Move the file back to its original location
+        if (rename(trash_path, path_from_info) == 0)
+        {
+            printf("Restored file '%s' from trash.\n", fileName);
+	    history("restored file '%s' from trash.", fileName);
+        }
+        else
+        {
+            perror("rename");
+        }
+    }
+    else
+    {
+        printf("File '%s' not found in trash.\n", fileName);
+    }
 }
 
 void deleteFile(const char *fileName) {
@@ -551,6 +662,86 @@ void openHistory()
     fclose(file);
 }
 
+void undoMoveFile(const char *sourceFileName, const char *destinationFileName) {
+    // Di chuyển file trở lại vị trí ban đầu
+    if (rename(destinationFileName, sourceFileName) == 0) {
+        printf("Undo successful. File '%s' moved back to '%s'.\n", destinationFileName, sourceFileName);
+    } else {
+        perror("rename");
+    }
+}
+
+void undoChangePermission(const char *fileName, const char *permission) {
+	mode_t oPermission = (mode_t)strtol(permission, NULL, 8);
+    if (chmod(fileName, oPermission) == 0) {
+        printf("Undo successful. Permission of '%s' restored to %o.\n", fileName, oPermission);
+    } else {
+        perror("chmod");
+    }
+}
+
+void undoChangeOwnerAndGroup(const char *fileName, const char *user, const char *group) {
+    struct passwd *pwd = getpwnam(user);
+    struct group *grp = getgrnam(group);
+
+    if (chown(fileName, pwd->pw_uid, grp->gr_gid) == 0) {
+        printf("Undo successful. File '%s' rechange owner and group: '%s:%s'.\n", fileName, user, group);
+    } else {
+        perror("rename");
+    }
+}
+
+// Hàm undo
+void undo(UndoStack *stack) {
+    if (stack->top >= 0) {
+        CommandState prevState = pop(stack);
+
+        // Thực hiện hoàn tác dựa trên trạng thái trước đó (prevState)
+        switch (prevState.choice) {
+            case 1:
+                // Nếu trạng thái trước đó là việc tạo file, thì xóa file đã tạo
+                if (remove(prevState.fileName) == 0) {
+                    printf("Undo successful. File '%s' deleted.\n", prevState.fileName);
+                } else {
+                    perror("remove");
+                }
+                break;
+	     case 2:
+                // Nếu trạng thái trước đó là việc di chuyển file vào thùng rác, thì di chuyển lại file
+                restoreFileFromTrash(prevState.fileName);
+		printf("Undo successful. File '%s' restored.\n", prevState.fileName);
+     
+                break;
+	     case 4: 
+                if (rename(prevState.newFileName, prevState.oldFileName) == 0) {
+                    printf("Undo successful. File '%s' renamed back to '%s'.\n", prevState.newFileName, prevState.oldFileName);
+            	} else {
+                    perror("rename");
+            	}
+            	break;
+	     case 5:
+		undoMoveFile(prevState.sourceFileName, prevState.destinationFileName);
+            	break;
+	     case 9:
+		undoChangePermission(prevState.fileName, prevState.permission);
+            	break;
+	     case 10:
+		undoChangeOwnerAndGroup(prevState.fileName, prevState.user, prevState.group);
+            	break;
+
+            // Các trường hợp khác nếu cần thêm vào
+            // ...
+            default:
+                printf("Unsupported undo operation.\n");
+                break;
+        }
+    } else {
+        printf("Không có thao tác để hoàn tác.\n");
+    }
+}
+
+
+
 void printMenu(){
     printf("\n");
     printf("File Manager\n");
@@ -570,7 +761,8 @@ void printMenu(){
     printf("13. Save file information\n");
     printf("14. Duplicate file\n");
     printf("15. History\n");
-    printf("16. Exit\n");
+    printf("16. Undo\n");
+    printf("17. Exit\n");
     printf("Enter your choice: ");
 }
 
@@ -582,6 +774,10 @@ char* getInput(const char *prompt, char *input) {
 
 int main(int argc, char *argv[])
 {
+
+    UndoStack undoStack;
+    initializeStack(&undoStack);
+
     char fileName[100];
     char oldFileName[100];
     char newFileName[100];
@@ -603,7 +799,7 @@ int main(int argc, char *argv[])
         int choice;
       
         // get input and check it is a number
-        if (scanf("%d", &choice) != 1 || choice < 1 || choice > 16)
+        if (scanf("%d", &choice) != 1 || choice < 1 || choice > 17)
 
         {
             printf("Invalid input\n");
@@ -611,12 +807,13 @@ int main(int argc, char *argv[])
         }
 
         // check if the user wants to exit
-        if (choice == 16)
+        if (choice == 17)
 
         {
             break;
         }
 
+	CommandState currentState;
         //switch on the choice
         switch (choice)
         {
@@ -625,28 +822,52 @@ int main(int argc, char *argv[])
             getInput("Enter file name: ", fileName);
             createFile(fileName);
             storeFileInfoInSharedMemory(fileName);
+
+	    
+	    currentState.choice = 1;
+	    strcpy(currentState.fileName, fileName);
+	    push(&undoStack, currentState);
+
             break;
         case 2:
             // request to input the file name
             getInput("Enter file name: ", fileName);
             moveFileToTrash(fileName);
+
+	    
+	    currentState.choice = 2;
+	    strcpy(currentState.fileName, fileName);
+	    push(&undoStack, currentState);
+
             break;
         case 3:
             // request to input the file name
             getInput("Enter file name: ", fileName);
             deleteFile(fileName);
+
             break;
         case 4:
             // request to input the file name
             getInput("Enter old file name: ", oldFileName);
             getInput("Enter new file name: ", newFileName);
             renameFile(oldFileName, newFileName);
+
+
+	    currentState.choice = 4;
+	    strcpy(currentState.oldFileName, oldFileName);
+	    strcpy(currentState.newFileName, newFileName);
+	    push(&undoStack, currentState);
             break;
         case 5:
             // request to input the file name
             getInput("Enter source file name: ", sourceFileName);
             getInput("Enter destination file name: ", destinationFileName);
             moveFile( sourceFileName, destinationFileName);
+
+	     currentState.choice = 5;
+    	     strcpy(currentState.sourceFileName, sourceFileName);
+    	     strcpy(currentState.destinationFileName, destinationFileName);
+   	     push(&undoStack, currentState);
             break;
         case 6:
             // request to input the directory path
@@ -686,13 +907,22 @@ int main(int argc, char *argv[])
 
             // Valid file names, merge files
             mergeFiles(fileName, fileName2, fileName3);
+	    currentState.choice = 1;
+	    strcpy(currentState.fileName, fileName3);
+	    push(&undoStack, currentState);
             break;
+
         case 9:
             // request to input the file name
             getInput("Enter file name: ", fileName);
             getInput("Enter permission: ", p);
             mode_t permission = strtol(p, NULL, 8);
             changePermission(fileName, permission);
+
+	    currentState.choice = 9;
+	    strcpy(currentState.fileName, fileName);
+	    sprintf(currentState.permission, "%o", permission);
+	    push(&undoStack, currentState);
             break;
         case 10:
             // request to input the file name
@@ -700,6 +930,12 @@ int main(int argc, char *argv[])
             getInput("Enter user name: ", user);
             getInput("Enter group name: ", group);
             changeOwnerAndGroup(fileName, user, group);
+
+	    currentState.choice = 10;
+	    strcpy(currentState.fileName, fileName);
+	    strcpy(currentState.user, user);
+	    strcpy(currentState.group, group);
+	    push(&undoStack, currentState);
             break;
         case 11:
             // request to input the file name
@@ -722,10 +958,19 @@ int main(int argc, char *argv[])
             // request to duplicate file
             getInput("Enter file name: ", fileName);
             duplicateFile(fileName);
+
+	    currentState.choice = 1;
+	    strcpy(currentState.fileName, "copy_");
+    	    strcat(currentState.fileName, fileName);
+	    push(&undoStack, currentState);
             break;
 	case 15:
             // request to open history
 	    openHistory();
+            break;
+	case 16:
+            // request to open history
+	    undo(&undoStack);
             break;
         default:
             printf("Invalid choice\n");
