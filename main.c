@@ -421,7 +421,8 @@ void mergeFiles(const char *fileName, const char *fileName2, const char *fileNam
     }
 }
 
-void printMenu(){
+void printMenu()
+{
     printf("\n");
     printf("File Manager\n");
     printf("-------------\n");
@@ -441,7 +442,8 @@ void printMenu(){
     printf("Enter your choice: ");
 }
 
-char* getInput(const char *prompt, char *input) {
+char *getInput(const char *prompt, char *input)
+{
     printf("%s", prompt);
     scanf("%s", input);
     return input;
@@ -468,20 +470,20 @@ int main(int argc, char *argv[])
     {
         printMenu();
         int choice;
-        //get input and check it is a number
+        // get input and check it is a number
         if (scanf("%d", &choice) != 1 || choice < 1 || choice > 13)
         {
             printf("Invalid input\n");
             continue;
         }
 
-        //check if the user wants to exit
+        // check if the user wants to exit
         if (choice == 13)
         {
             break;
         }
 
-        //switch on the choice
+        // switch on the choice
         switch (choice)
         {
         case 1:
@@ -505,12 +507,12 @@ int main(int argc, char *argv[])
             // request to input the file name
             getInput("Enter source file name: ", sourceFileName);
             getInput("Enter destination file name: ", destinationFileName);
-            moveFile( sourceFileName, destinationFileName);
+            moveFile(sourceFileName, destinationFileName);
             break;
         case 5:
             // request to input the directory path
             getInput("Enter directory path: ", directoryPath);
-            listFiles( directoryPath);
+            listFiles(directoryPath);
             break;
         case 6:
             // request to input the file name
@@ -581,8 +583,7 @@ int main(int argc, char *argv[])
             printf("Invalid choice\n");
             break;
         }
-
     }
-    
+
     return 0;
 }
