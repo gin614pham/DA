@@ -551,17 +551,16 @@ void printMenu(){
     printf("File Manager\n");
     printf("-------------\n");
     printf("1. Create a file\n");
-    printf("2. Move a file to trash\n");
-    printf("3. Permanently delete a file\n");
-    printf("4. Rename a file\n");
-    printf("5. Move a file\n");
-    printf("6. List files in a directory\n");
-    printf("7. Show information about a file\n");
-    printf("8. Merge two files\n");
-    printf("9. Change permission\n");
-    printf("10. Change owner and group\n");
-    printf("13. Save file information\n");
-    printf("14. Exit\n");
+    printf("2. Delete a file\n");
+    printf("3. Rename a file\n");
+    printf("4. Move a file\n");
+    printf("5. List files in a directory\n");
+    printf("6. Show information about a file\n");
+    printf("7. Merge two files\n");
+    printf("8. Change permission\n");
+    printf("9. Change ownership\n");
+    printf("10. Save file information\n");
+    printf("11. Exit\n");
     printf("Enter your choice: ");
 }
 
@@ -584,6 +583,16 @@ void printMenuMerge()
     printf("-------------\n");
     printf("1. Merge two files\n");
     printf("2. Merge at line\n");
+    printf("3. Back\n");
+    printf("Enter your choice: ");
+}
+
+void printMenuDelete(){
+    printf("\n");
+    printf("File Manager\n");
+    printf("-------------\n");
+    printf("1. Permanently delete a file\n");
+    printf("2. Move a file to trash\n");
     printf("3. Back\n");
     printf("Enter your choice: ");
 }
@@ -648,38 +657,53 @@ int main(int argc, char *argv[])
             storeFileInfoInSharedMemory(fileName);
             break;
         case 2:
-            // request to input the file name
-            getInput("Enter file name: ", fileName);
-            moveFileToTrash(fileName);
+            do {
+                printMenuDelete();
+                int choice_delete;
+                if (scanf("%d", &choice_delete) != 1 || choice_delete < 1 || choice_delete > 3)
+                {
+                    printf("Invalid input\n");
+                    continue;
+                }
+
+                if (choice_delete == 3)
+                {
+                    break;
+                }
+
+                switch (choice_delete)
+                {
+                case 1:
+                    getInput("Enter file name: ", fileName);
+                    deleteFile(fileName);
+                    break;
+                case 2:
+                    getInput("Enter file name: ", fileName);
+                    moveFileToTrash(fileName);
+                }
+
+
+            } while (1);
             break;
         case 3:
-            // request to input the file name
-            getInput("Enter file name: ", fileName);
-            deleteFile(fileName);
-            break;
-        case 4:
-            // request to input the file name
             getInput("Enter old file name: ", oldFileName);
             getInput("Enter new file name: ", newFileName);
             renameFile(oldFileName, newFileName);
             break;
-        case 5:
-            // request to input the file name
+        case 4:
             getInput("Enter source file name: ", sourceFileName);
             getInput("Enter destination file name: ", destinationFileName);
             moveFile( sourceFileName, destinationFileName);
             break;
-        case 6:
-            // request to input the directory path
+        case 5:
             getInput("Enter directory path: ", directoryPath);
             listFiles( directoryPath);
             break;
-        case 7:
-            // request to input the file name
+        case 6:
             getInput("Enter file name: ", fileName);
             printFileInfo(fileName);
             break;
-        case 8:
+        case 7:
             do
             {
                 printMenuMerge();
@@ -736,14 +760,13 @@ int main(int argc, char *argv[])
             } while (1);
 
             break;
-        case 9:
-            // request to input the file name
+        case 8:
             getInput("Enter file name: ", fileName);
             getInput("Enter permission: ", p);
             mode_t permission = strtol(p, NULL, 8);
             changePermission(fileName, permission);
             break;
-        case 10:
+        case 9:
              do
             {
                 printMenuChangeOwnership();
@@ -781,10 +804,13 @@ int main(int argc, char *argv[])
                 }
             } while (1);
             break;
-        case 13:
+        case 10:
             // request to store file information in shared memory
             getInput("Enter file name: ", fileName);
             storeFileInfoInSharedMemory(fileName);
+            break;
+        case 11:
+            exit(EXIT_SUCCESS);
             break;
         default:
             printf("Invalid choice\n");
