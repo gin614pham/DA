@@ -1,20 +1,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+#include <stdarg.h>
+#include <fcntl.h>
+
+#include <linux/limits.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#include <linux/limits.h>
-#include <stdarg.h>
 
 #define BUFFER_SIZE 1024
+
+// Global flag to track whether the download manager is running
+int downloadManagerPid = -1;
 
 char fileName[100];
 char oldFileName[100];
@@ -714,6 +720,52 @@ void openHistory()
     fclose(file);
 }
 
+void checkDownloadManagerStatus()
+{
+    int result = kill(downloadManagerPid, 0);
+    // Check if the download manager process is still running
+    if ((downloadManagerPid != -1 && waitpid(downloadManagerPid, NULL, WNOHANG) == 0) || result == 0)
+        return;
+    else
+        downloadManagerPid = -1; // Reset the PID if the process has exited
+}
+
+void openDownloadHandler()
+{
+    // Check if the download manager is already running
+    checkDownloadManagerStatus();
+
+    if (downloadManagerPid != -1)
+    {
+        printf("Download manager is already running with PID %d.\n", downloadManagerPid);
+    }
+    else
+    {
+        // Fork a new process
+        downloadManagerPid = fork();
+
+        if (downloadManagerPid == -1)
+        {
+            perror("Fork failed");
+            exit(EXIT_FAILURE);
+        }
+        else if (downloadManagerPid == 0)
+        {
+            // Child process
+            execlp("gnome-terminal", "gnome-terminal", "--", "./download_manager", (char *)NULL);
+            perror("execlp failed");
+            exit(EXIT_FAILURE);
+        }
+        else
+        {
+            // Parent process
+            printf("Download manager started with PID %d.\n", downloadManagerPid);
+            // Optionally wait for the child process to exit (non-blocking)
+            // waitpid(downloadManagerPid, NULL, WNOHANG);
+        }
+    }
+}
+
 void printMenu()
 {
     printf("\n");
@@ -731,7 +783,8 @@ void printMenu()
     printf("10. Save file information\n");
     printf("11. Duplicate file\n");
     printf("12. History\n");
-    printf("13. Exit\n");
+    printf("13. Open download handler\n");
+    printf("14. Exit\n");
     printf("Enter your choice: ");
 }
 
@@ -982,6 +1035,9 @@ int main(int argc, char *argv[])
             openHistory();
             break;
         case 13:
+            openDownloadHandler();
+            break;
+        case 14:
             exit(EXIT_SUCCESS);
             break;
         default:
