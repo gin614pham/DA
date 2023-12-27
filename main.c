@@ -574,7 +574,8 @@ int main(int argc, char *argv[])
     char fileNameMerge2[100];
     char fileNameMergeFinal[100];
     char delete_at[100];
-    char lineMerge[100];
+    int lineMerge;
+    char line[100];
 
     while (1)
     {
@@ -665,7 +666,8 @@ int main(int argc, char *argv[])
                     break;
                 case 2:
                     getInput("Enter file name you want to merge at line: ", fileNameMerge1);
-                    getInput("Enter line number: ", lineMerge);
+                    getInput("Enter line number: ", line);
+                    lineMerge = strtol(line, NULL, 10);
                     getInput("Enter file merge name: ", fileNameMerge2);
                     getInput("Enter final file merge name: ", fileNameMergeFinal);
                     mergeFileAtLine(fileNameMerge1, fileNameMerge2, fileNameMergeFinal, lineMerge);
