@@ -12,6 +12,33 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <linux/limits.h>
+#include <stdarg.h>
+
+void history(const char *format, ...) {
+    FILE *historyFile = fopen("history.txt", "a");
+
+    if (historyFile != NULL) {
+        time_t currentTime;
+        time(&currentTime);
+        struct tm *localTime = localtime(&currentTime);
+
+        va_list args;
+        va_start(args, format);
+
+        fprintf(historyFile, "[%04d-%02d-%02d %02d:%02d:%02d] ", 
+                localTime->tm_year + 1900, localTime->tm_mon + 1, localTime->tm_mday,
+                localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
+
+        vfprintf(historyFile, format, args);
+        fprintf(historyFile, "\n");
+
+        va_end(args);
+
+        fclose(historyFile);
+    } else {
+        perror("fopen");
+    }
+}
 
 void storeFileInfoInSharedMemory(const char *filePath);
 struct FileInfo
@@ -67,6 +94,7 @@ void storeFileInfoInSharedMemory(const char *filePath)
 
     // Detach shared memory segment
     shmdt(sharedFileInfo);
+    history("saved information of file '%s'.", fileInfo.fileName);
 }
 
 // Function to print file information
@@ -104,6 +132,7 @@ void printFileInfo(const char *filePath)
     printf("Group GID: %d\n", fileInfo.gid);
     printf("File Size: %ld bytes\n", (long)fileInfo.fileSize);
     printf("Last Access Time: %s", ctime(&(fileInfo.lastAccessTime)));
+    history("saw information of file '%s'.", fileInfo.fileName);
 }
 
 void createFolder(const char *folderName)
@@ -112,6 +141,7 @@ void createFolder(const char *folderName)
     if (mkdir(folderName, 0777) == 0)
     {
         printf("Folder '%s' created successfully.\n", folderName);
+	history("created folder '%s'.", folderName);
     }
     else
     {
@@ -127,6 +157,7 @@ void createFile(const char *fileName)
     {
         fclose(fp);
         printf("File '%s' created successfully.\n", fileName);
+	history("created file '%s'.", fileName);
     }
     else
     {
@@ -244,6 +275,7 @@ void moveFileToTrash(const char *fileName)
     fclose(trash_info_file);
 
     printf("Moved file %s to trash.\n", fileName);
+    history("moved file '%s' to trash.", fileName);
 }
 
 void deleteFile(const char *fileName) {
@@ -257,6 +289,7 @@ void deleteFile(const char *fileName) {
         // Delete the file
         if (remove(fileName) == 0) {
             printf("File '%s' deleted successfully.\n", fileName);
+	    history("deleted file '%s'.", fileName);
         } else {
             perror("remove");
         }
@@ -271,6 +304,7 @@ void renameFile(const char *oldName, const char *newName)
     if (rename(oldName, newName) == 0)
     {
         printf("File '%s' renamed to '%s' successfully.\n", oldName, newName);
+	history("renamed file '%s' to '%s'.", oldName, newName);
     }
     else
     {
@@ -284,6 +318,7 @@ void moveFile(const char *source, const char *destination)
     if (rename(source, destination) == 0)
     {
         printf("File '%s' moved to '%s' successfully.\n", source, destination);
+	history("moved file '%s' to '%s'.", source, destination);
     }
     else
     {
@@ -304,6 +339,7 @@ void listFiles(const char *directoryPath)
             printf("%s\n", entry->d_name);
         }
         closedir(dir);
+	history("opened list files");
     }
     else
     {
@@ -317,6 +353,7 @@ void changePermission(const char *fileName, mode_t permission)
     if (chmod(fileName, permission) == 0)
     {
         printf("Permission of '%s' changed to %o successfully.\n", fileName, permission);
+	history("changed permission of file '%s' to '%s'.", fileName, permission);
     }
     else
     {
@@ -365,6 +402,7 @@ void changeOwnerAndGroup(const char *file_path, const char *user_name, const cha
     else
     {
         printf("Owner and group of '%s' changed to '%s:%s' successfully.\n", file_path, user_name, group_name);
+	history("changed owner and group of file '%s' to '%s:%s'.", file_path, user_name, group_name);
     }
 }
 
@@ -459,6 +497,58 @@ void mergeFiles(const char *fileName, const char *fileName2, const char *fileNam
 
         exit(0);
     }
+	history("merged file '%s' and '%s' to '%s'.", fileName, fileName2, fileName3);
+}
+
+void duplicateFile(const char *fileName) {
+    FILE *fp = fopen(fileName, "r");
+    if (fp == NULL) {
+        perror("fopen");
+        return;
+    }
+
+    char dupliFile[50];
+    strcpy(dupliFile, "copy_");
+    strcat(dupliFile, fileName);
+
+    createFile(dupliFile);
+    FILE *dupliFp = fopen(dupliFile, "w");
+    if (dupliFp == NULL) {
+        perror("createFile");
+        fclose(fp);
+        return;
+    }
+    int character;
+    while ((character = fgetc(fp)) != EOF) {
+        fputc(character, dupliFp);
+    }
+
+    fclose(fp);
+    fclose(dupliFp);
+
+    printf("File '%s' duplicated successfully.\n", fileName);
+    history("duplicated file '%s'.", fileName);
+}
+
+void openHistory()
+{
+   const char *history = "history.txt";
+
+    FILE *file = fopen(history, "r");
+
+    if (file == NULL) {
+        printf("can't open file %s\n", history);
+    }
+
+    // Đọc nội dung từ file
+    printf("history of system:\n");
+    int kyTu;
+    while ((kyTu = fgetc(file)) != EOF) {
+        putchar(kyTu);
+
+    }
+
+    fclose(file);
 }
 
 void printMenu(){
@@ -478,7 +568,9 @@ void printMenu(){
     printf("11. Change owner\n");
     printf("12. Change group\n");
     printf("13. Save file information\n");
-    printf("14. Exit\n");
+    printf("14. Duplicate file\n");
+    printf("15. History\n");
+    printf("16. Exit\n");
     printf("Enter your choice: ");
 }
 
@@ -511,7 +603,7 @@ int main(int argc, char *argv[])
         int choice;
       
         // get input and check it is a number
-        if (scanf("%d", &choice) != 1 || choice < 1 || choice > 14)
+        if (scanf("%d", &choice) != 1 || choice < 1 || choice > 16)
 
         {
             printf("Invalid input\n");
@@ -519,7 +611,7 @@ int main(int argc, char *argv[])
         }
 
         // check if the user wants to exit
-        if (choice == 14)
+        if (choice == 16)
 
         {
             break;
@@ -625,6 +717,15 @@ int main(int argc, char *argv[])
             // request to store file information in shared memory
             getInput("Enter file name: ", fileName);
             storeFileInfoInSharedMemory(fileName);
+            break;
+	case 14:
+            // request to duplicate file
+            getInput("Enter file name: ", fileName);
+            duplicateFile(fileName);
+            break;
+	case 15:
+            // request to open history
+	    openHistory();
             break;
         default:
             printf("Invalid choice\n");
