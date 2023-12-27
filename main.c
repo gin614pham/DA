@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <pwd.h>
@@ -724,7 +725,7 @@ void checkDownloadManagerStatus()
 {
     int result = kill(downloadManagerPid, 0);
     // Check if the download manager process is still running
-    if ((downloadManagerPid != -1 && waitpid(downloadManagerPid, NULL, WNOHANG) == 0) || result == 0)
+    if (result == 0)
         return;
     else
         downloadManagerPid = -1; // Reset the PID if the process has exited
