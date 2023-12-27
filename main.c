@@ -11,6 +11,7 @@
 #include <time.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <linux/limits.h>
 
 void storeFileInfoInSharedMemory(const char *filePath);
 struct FileInfo
@@ -329,8 +330,7 @@ void changeOwnerAndGroup(const char *file_path, const char *user_name, const cha
     }
 }
 
-
-void mergeFiles(const char *fileName, const char *fileName2)
+void mergeFiles(const char *fileName, const char *fileName2, const char *fileName3)
 {
     int fd1[2];
     int fd2[2];
@@ -338,15 +338,18 @@ void mergeFiles(const char *fileName, const char *fileName2)
     FILE *fp1 = fopen(fileName, "r");
     FILE *fp2 = fopen(fileName2, "r");
 
-    createFile("file3.txt");
-    FILE *fp3 = fopen("file3.txt", "w");
-
+    createFile(fileName3);
+    FILE *fp3 = fopen(fileName3, "w");
 
     if (fp1 == NULL || fp2 == NULL)
     {
         perror("fopen");
         return;
     }
+
+    const int BUFFER_SIZE = 1024;
+    char concat_str[BUFFER_SIZE];
+    char concat_str2[BUFFER_SIZE];
 
     if (pipe(fd1) == -1)
     {
@@ -372,50 +375,46 @@ void mergeFiles(const char *fileName, const char *fileName2)
     // parent process
     else if (p > 0)
     {
-        char concat_str[100];
-
         close(fd1[0]);
 
-        while (fgets(concat_str, 100, fp1) != NULL)
+        while (fgets(concat_str, sizeof(concat_str), fp1) != NULL)
         {
             write(fd1[1], concat_str, strlen(concat_str) + 1);
         }
-        printf("P1 %s\n", concat_str);
+
         close(fd1[1]);
 
         wait(NULL);
 
         close(fd2[1]);
 
-        read(fd2[0], concat_str, 100);
-        printf("P2 %s\n", concat_str);
+        while (read(fd2[0], concat_str, sizeof(concat_str)) > 0)
+        {
+            fputs(concat_str, fp3);
+        }
+
         close(fd2[0]);
+        fclose(fp3);
     }
     // child process
     else
     {
         close(fd1[1]);
-        char concat_str[100];
-        char concat_str2[100];
-        read(fd1[0], concat_str, 100);
-        printf("C1 %s\n", concat_str);
 
-        while (fgets(concat_str2, 100, fp2) != NULL)
+        while (read(fd1[0], concat_str, sizeof(concat_str)) > 0)
         {
-            int k = strlen(concat_str);
-            for (int i = 0; i < strlen(concat_str2); i++)
+            // Read from fp2 and concatenate
+            while (fgets(concat_str2, sizeof(concat_str2), fp2) != NULL)
             {
-                concat_str[k++] = concat_str2[i];
+                strcat(concat_str, concat_str2);
             }
-            concat_str[k] = '\0';
+
+            // Write to fd2[1]
+            write(fd2[1], concat_str, strlen(concat_str) + 1);
         }
-        printf("C2 %s\n", concat_str);
 
         close(fd1[0]);
         close(fd2[0]);
-
-        write(fd2[1], concat_str, strlen(concat_str) + 1);
-        printf("C4 %s\n", concat_str);
         close(fd2[1]);
 
         exit(0);
@@ -458,6 +457,7 @@ int main(int argc, char *argv[])
     char user_name[100];
     char group_name[100];
     char fileName2[100];
+    char fileName3[100];
     char p[100];
     char user[100];
     char group[100];
@@ -518,10 +518,33 @@ int main(int argc, char *argv[])
             printFileInfo(fileName);
             break;
         case 7:
-            // request to input the file name
-            getInput("Enter file name: ", fileName);
-            getInput("Enter file name: ", fileName2);
-            mergeFiles(fileName, fileName2);
+            // request to input the file names
+            getInput("Enter file name 1: ", fileName);
+            while (access(fileName, F_OK) == -1)
+            {
+                printf("File '%s' does not exist.\n", fileName);
+                // Prompt the user again for file 1
+                getInput("Enter file name 1: ", fileName);
+            }
+
+            getInput("Enter file name 2: ", fileName2);
+            while (access(fileName2, F_OK) == -1)
+            {
+                printf("File '%s' does not exist.\n", fileName2);
+                // Prompt the user again for file 2
+                getInput("Enter file name 2: ", fileName2);
+            }
+
+            getInput("Enter file merge name: ", fileName3);
+            while (access(fileName3, F_OK) != -1)
+            {
+                printf("File '%s' already exists.\n", fileName3);
+                // Prompt the user again for file merge name
+                getInput("Enter file merge name: ", fileName3);
+            }
+
+            // Valid file names, merge files
+            mergeFiles(fileName, fileName2, fileName3);
             break;
         case 8:
             // request to input the file name
