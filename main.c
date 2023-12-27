@@ -722,10 +722,6 @@ int main(int argc, char *argv[])
                     break;
                 }
             } while (1);
-            getInput("Enter file name: ", fileName);
-            getInput("Enter user name: ", user);
-            getInput("Enter group name: ", group);
-            changeOwnerAndGroup(fileName, user, group);
             break;
         case 12:
             getInput("Enter file name: ", fileName);
