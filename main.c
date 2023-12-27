@@ -330,35 +330,27 @@ void changeOwnerAndGroup(const char *file_path, const char *user_name, const cha
     }
 }
 
-void mergeFiles(const char *fileName, const char *fileName2, const char *fileName3)
-{
+
+void mergeFiles(const char *fileName, const char *fileName2, const char *fileName3) {
     int fd1[2];
     int fd2[2];
 
     FILE *fp1 = fopen(fileName, "r");
     FILE *fp2 = fopen(fileName2, "r");
-
     createFile(fileName3);
     FILE *fp3 = fopen(fileName3, "w");
 
-    if (fp1 == NULL || fp2 == NULL)
-    {
+    if (fp1 == NULL || fp2 == NULL) {
         perror("fopen");
         return;
     }
 
-    const int BUFFER_SIZE = 1024;
-    char concat_str[BUFFER_SIZE];
-    char concat_str2[BUFFER_SIZE];
-
-    if (pipe(fd1) == -1)
-    {
+    if (pipe(fd1) == -1) {
         perror("pipe");
         return;
     }
 
-    if (pipe(fd2) == -1)
-    {
+    if (pipe(fd2) == -1) {
         perror("pipe");
         return;
     }
@@ -366,58 +358,61 @@ void mergeFiles(const char *fileName, const char *fileName2, const char *fileNam
     pid_t p;
     p = fork();
 
-    if (p < 0)
-    {
+    if (p < 0) {
         perror("fork");
         return;
     }
 
-    // parent process
-    else if (p > 0)
-    {
+    //parent process
+    else if (p > 0) {
+        char concat_str[60000];
+
         close(fd1[0]);
 
-        while (fgets(concat_str, sizeof(concat_str), fp1) != NULL)
-        {
+        while (fgets(concat_str, 100, fp1) != NULL) {
             write(fd1[1], concat_str, strlen(concat_str) + 1);
         }
-
+        printf("P1 %s\n", concat_str);
         close(fd1[1]);
 
         wait(NULL);
 
         close(fd2[1]);
 
-        while (read(fd2[0], concat_str, sizeof(concat_str)) > 0)
-        {
-            fputs(concat_str, fp3);
-        }
-
+        read(fd2[0], concat_str, 100);
+        printf("P2 %s\n", concat_str);
+        fprintf(fp3, "%s", concat_str);
         close(fd2[0]);
         fclose(fp3);
     }
-    // child process
-    else
-    {
+    //child process
+    else {
         close(fd1[1]);
+        char concat_str[60000];
+        char concat_str2[60000];
+        read(fd1[0], concat_str, 100);
+        printf("C1 %s\n", concat_str);
 
-        while (read(fd1[0], concat_str, sizeof(concat_str)) > 0)
-        {
-            // Read from fp2 and concatenate
-            while (fgets(concat_str2, sizeof(concat_str2), fp2) != NULL)
-            {
-                strcat(concat_str, concat_str2);
+        while (fgets(concat_str2, 100, fp2) != NULL) {
+            int k = strlen(concat_str);
+            for (int i = 0; i < strlen(concat_str2); i++) {
+                concat_str[k++] = concat_str2[i];
             }
-
-            // Write to fd2[1]
-            write(fd2[1], concat_str, strlen(concat_str) + 1);
+            concat_str[k] = '\0';
         }
+        printf("C2 %s\n", concat_str);
 
         close(fd1[0]);
         close(fd2[0]);
+
+        write(fd2[1], concat_str, strlen(concat_str) + 1);
+        printf("C4 %s\n", concat_str);
         close(fd2[1]);
 
-        exit(0);
+        fclose(fp1);
+        fclose(fp2);
+
+        exit(0);      
     }
 }
 
