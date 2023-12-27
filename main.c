@@ -9,44 +9,100 @@
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
-#include <dirent.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
-// Function to print file information
-void printFileInfo(const char *filePath)
+void storeFileInfoInSharedMemory(const char *filePath);
+struct FileInfo
 {
-    const char *fileName = strrchr(filePath, '/') ? strrchr(filePath, '/') + 1 : filePath;
+    char fileName[100];
+    mode_t permission;
+    uid_t uid;
+    gid_t gid;
+    off_t fileSize;
+    time_t lastAccessTime;
+};
 
-    struct stat fileInfo;
+// Function to store file information in shared memory
+void storeFileInfoInSharedMemory(const char *filePath)
+{
+    struct FileInfo fileInfo;
 
     // Get file information
-    if (stat(filePath, &fileInfo) < 0)
+    struct stat fileStat;
+    if (stat(filePath, &fileStat) < 0)
     {
         perror("stat");
         return;
     }
-    printf("Information for '%s':\n", fileName);
 
-    // Check if it's a directory
-    printf("%s: %s\n", S_ISDIR(fileInfo.st_mode) ? "Directory" : "File", fileName);
+    // Store file information in struct FileInfo
+    strcpy(fileInfo.fileName, filePath);
+    fileInfo.permission = fileStat.st_mode & 0777;
+    fileInfo.uid = fileStat.st_uid;
+    fileInfo.gid = fileStat.st_gid;
+    fileInfo.fileSize = fileStat.st_size;
+    fileInfo.lastAccessTime = fileStat.st_atime;
 
-    printf("Number of Links: %ld\n", (long)fileInfo.st_nlink);
-    printf("File Permissions: %o\n", fileInfo.st_mode & 0777);
+    // Create shared memory segment
+    key_t key = ftok(filePath, 'R');
+    int shmid = shmget(key, sizeof(struct FileInfo), IPC_CREAT | 0666);
+    if (shmid < 0)
+    {
+        perror("shmget");
+        return;
+    }
 
-    struct passwd *pw = getpwuid(fileInfo.st_uid);
-    struct group *gr = getgrgid(fileInfo.st_gid);
-    printf("Owner: %s\n", pw ? pw->pw_name : "Unknown");
-    printf("Group: %s\n", gr ? gr->gr_name : "Unknown");
+    // Attach shared memory segment
+    struct FileInfo *sharedFileInfo = (struct FileInfo *)shmat(shmid, NULL, 0);
+    if (sharedFileInfo == (struct FileInfo *)-1)
+    {
+        perror("shmat");
+        return;
+    }
 
-    printf("Size: %ld bytes\n", (long)fileInfo.st_size);
-    printf("Blocks: %ld\n", (long)fileInfo.st_blocks);
-    printf("Block Size: %ld bytes\n", (long)fileInfo.st_blksize);
+    // Copy file information to shared memory
+    memcpy(sharedFileInfo, &fileInfo, sizeof(struct FileInfo));
 
-    // Format and print the last access time
-    char buffer[80];
-    strftime(buffer, 80, "Last Access Time: %Y-%m-%d %H:%M:%S", localtime(&fileInfo.st_atime));
-    printf("%s\n", buffer);
+    // Detach shared memory segment
+    shmdt(sharedFileInfo);
+}
 
-    printf("\n");
+// Function to print file information
+void printFileInfo(const char *filePath)
+{
+    struct FileInfo fileInfo;
+
+    // Get shared memory segment
+    key_t key = ftok(filePath, 'R');
+    int shmid = shmget(key, sizeof(struct FileInfo), 0666);
+    if (shmid < 0)
+    {
+        perror("shmget");
+        return;
+    }
+
+    // Attach shared memory segment
+    struct FileInfo *sharedFileInfo = (struct FileInfo *)shmat(shmid, NULL, 0);
+    if (sharedFileInfo == (struct FileInfo *)-1)
+    {
+        perror("shmat");
+        return;
+    }
+
+    // Copy file information from shared memory
+    memcpy(&fileInfo, sharedFileInfo, sizeof(struct FileInfo));
+
+    // Detach shared memory segment
+    shmdt(sharedFileInfo);
+
+    // Print file information
+    printf("Information for '%s':\n", fileInfo.fileName);
+    printf("Permission: %o\n", fileInfo.permission);
+    printf("Owner UID: %d\n", fileInfo.uid);
+    printf("Group GID: %d\n", fileInfo.gid);
+    printf("File Size: %ld bytes\n", (long)fileInfo.fileSize);
+    printf("Last Access Time: %s", ctime(&(fileInfo.lastAccessTime)));
 }
 
 void createFolder(const char *folderName)
@@ -431,6 +487,7 @@ int main(int argc, char *argv[])
             // request to input the file name
             getInput("Enter file name: ", fileName);
             createFile(fileName);
+            storeFileInfoInSharedMemory(fileName);
             break;
         case 2:
             // request to input the file name
